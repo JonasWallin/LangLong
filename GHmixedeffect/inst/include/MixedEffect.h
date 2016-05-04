@@ -52,7 +52,7 @@ class NormalMixedEffect  : public MixedEffect{
 
 
 
-class NormalMixedEffect  : public MixedEffect{
+class NIGMixedEffect  : public MixedEffect{
   private:
     Eigen::MatrixXd invSigma;
     Eigen::MatrixXd iSkroniS; // helper matrix
@@ -64,10 +64,12 @@ class NormalMixedEffect  : public MixedEffect{
   public:
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
+    Eigen::VectorXd V;
   
     Eigen::MatrixXd Sigma;
   
-    NormalMixedEffect();
+    NIGMixedEffect();
+    void sampleV(const int);
     void initFromList(Rcpp::List const &);
     void sampleU(const int, const Eigen::VectorXd &, const double sigma) ;
     void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= B[i]*U.col(i);} ;

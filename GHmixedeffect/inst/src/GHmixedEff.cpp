@@ -1,4 +1,5 @@
 #include "MixedEffect.h"
+#include "error_check.h"
 
 
 
@@ -8,6 +9,7 @@ Rcpp::List NIGMixedEffect::toList()
   out["B"]     = B;
   out["Sigma"] = Sigma;
   out["U"]     = U;
+  out["V"]     = V;
   return(out);
 }
 void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
@@ -36,12 +38,13 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     U.setZero(B[0].cols(), B.size());
   }
   
-  if( init_list.containsElementNamed("V" )){
+  if( init_list.containsElementNamed("V" ))
     V = Rcpp::as< Eigen::MatrixXd > (init_list["V"]) ;
-  }else{
+  else
     V.setZero(B.size(), 1);
-  }
   
+  
+}
 
 
 void NIGMixedEffect::sampleV(const int i)
