@@ -14,7 +14,7 @@
 
 # RStudio files
 .Rproj.user/
-.Rproj
+*.Rproj
 
 
 
@@ -27,6 +27,6 @@ vignettes/*.pdf
 
 
 #c++
-.so
-.o
+*.so
+*.o
 Makevars

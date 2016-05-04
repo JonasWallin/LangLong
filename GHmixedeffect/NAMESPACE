@@ -1,0 +1,3 @@
+useDynLib(GHmixedeffect)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
