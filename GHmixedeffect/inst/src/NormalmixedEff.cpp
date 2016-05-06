@@ -21,35 +21,75 @@ NormalMixedEffect::NormalMixedEffect(){
 Rcpp::List NormalMixedEffect::toList()
 {
   Rcpp::List out;
-  out["B"]     = B;
-  out["Sigma"] = Sigma;
-  out["U"]     = U;
+  out["Bf"]          = Bf;
+  out["Br"]          = Br;
+  out["beta_random"] = beta_random;
+  out["beta_fixed"]  = beta_fixed;
+  out["Sigma"]       = Sigma;
+  out["U"]           = U;
   return(out);
 }
 void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
 {
   
-  std::vector<std::string> check_names =  {"B", "Sigma"};
-  check_Rcpplist(init_list, check_names, "NormalmixedEff::initFromList");
-  
+ 
   int count =0;
-  Rcpp::List B_list = init_list["B"];
-  B.resize(B_list.length());
-  for( Rcpp::List::iterator it = B_list.begin(); it != B_list.end(); ++it ) {
-    B[count] = Rcpp::as < Eigen::MatrixXd >( it[0]);
-    count++;
+  if(init_list.containsElementNamed("B_fixed"))
+  {
+    Rcpp::List Bf_list = init_list["B_fixed"];
+    Bf.resize(Bf_list.length());
+    for( Rcpp::List::iterator it = Bf_list.begin(); it != Bf_list.end(); ++it ) {
+      Bf[count++] = Rcpp::as < Eigen::MatrixXd >( it[0]);
+    }
+    grad_beta_f.setZero(Bf[0].cols());
+    
+    if(init_list.containsElementNamed("beta_fixed"))
+      beta_fixed = Rcpp::as < Eigen::VectorXd >( init_list["beta_fixed"]);
+    else
+      beta_fixed.setZero(Bf[0].cols());
+    
+     H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
+  
+    
+  }else{ Bf.resize(0);}
+  count = 0;
+  
+  
+  if(init_list.containsElementNamed("B_random"))
+  {
+    Rcpp::List Br_list = init_list["B_random"];
+    Br.resize(Br_list.length());
+    for( Rcpp::List::iterator it = Br_list.begin(); it != Br_list.end(); ++it ) {
+      Br[count++] = Rcpp::as < Eigen::MatrixXd >( it[0]);
+    }
+    grad_beta_r.setZero(Br[0].cols());
+    grad_beta_r2.setZero(Br[0].cols());
+    if(init_list.containsElementNamed("beta_random"))
+      beta_random = Rcpp::as < Eigen::VectorXd >( init_list["beta_random"]);
+    else
+      beta_random.setZero(Br[0].cols());
+  }else{ Br.resize(0);}
+  
+  H_beta_random.setZero(Br[0].cols(), Br[0].cols());
+  if(Br[0].cols() > 0){
+    D = duplicatematrix(Br[0].cols());
+    Dd = D.cast <double> (); 
   }
-  D = duplicatematrix(B[0].cols());
-  Dd = D.cast <double> (); 
-  Sigma     =  Rcpp::as< Eigen::MatrixXd > (init_list["Sigma"]) ;
-  Sigma_vech = vech(Sigma);
-  UUt.setZero(Sigma.cols() * Sigma.rows());
-  dSigma_vech.setZero(Sigma_vech.size());
-  invSigma  = Sigma.inverse();
-  if( init_list.containsElementNamed("U" )){
-    U = Rcpp::as< Eigen::MatrixXd > (init_list["U"]) ;
-  }else{
-    U.setZero(B[0].cols(), B.size());
+  
+  if(Br.size() > 0){
+    if(init_list.containsElementNamed("Sigma"))
+      Sigma     =  Rcpp::as< Eigen::MatrixXd > (init_list["Sigma"]) ;
+    else
+      Sigma.setIdentity(Br[0].cols(), Br[0].cols());
+    
+    Sigma_vech = vech(Sigma);
+    UUt.setZero(Sigma.cols() * Sigma.rows());
+    dSigma_vech.setZero(Sigma_vech.size());
+    invSigma  = Sigma.inverse();
+    if( init_list.containsElementNamed("U" ))
+      U = Rcpp::as< Eigen::MatrixXd > (init_list["U"]);
+    else
+      U.setZero(Br[0].cols(), Br.size());
   }
   
 }
@@ -60,24 +100,65 @@ void NormalMixedEffect::sampleU(const int i,
                                 const Eigen::VectorXd& res,
                                 const double log_sigma2_noise)
 {
-  
-          Eigen::VectorXd b   = exp( - log_sigma2_noise) * (B[i].transpose() * res);
-          Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * B[i].transpose() * B[i];
-          Q +=  invSigma;
-          U.col(i) = sample_Nc(b, Q);
-          
+    if(Br.size() == 0)
+      return;
+
+    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * res);
+    Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * Br[i];
+    Q        +=  invSigma;
+    U.col(i) =   sample_Nc(b, Q); 
 }
 
-void NormalMixedEffect::gradient(const int i, const Eigen::VectorXd& res)
+void NormalMixedEffect::gradient(const int i, 
+                                 const Eigen::VectorXd& res,
+                                 const double log_sigma2_noise)
 {
     counter++;
-    Eigen::MatrixXd UUT = U.col(i) * U.col(i).transpose();
-    
-    UUt += vec( UUT);
-}
+    Eigen::VectorXd res_  = res;
+    if(Br.size() > 0){
+      res_ -= Br[i] * U.col(i);
+      Eigen::MatrixXd UUT = U.col(i) * U.col(i).transpose();
+      UUt += vec( UUT);
+      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * res_);
+      grad_beta_r2 +=  (invSigma * U.col(i));
+      H_beta_random +=  exp( - log_sigma2_noise) * (Br[i].transpose() * Br[i]);
+    }
+    if(Bf.size() > 0){
+      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * res_);
+      H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
+    }}
 void NormalMixedEffect::step_theta(double stepsize)
 {
-  double pos_def = 0;
+  if(Br.size() > 0){
+    step_beta_random(stepsize);
+    step_Sigma(stepsize);
+  }
+  
+  if(Bf.size() > 0){
+    step_beta_fixed(stepsize);
+  }
+  
+  counter = 0;
+}
+void NormalMixedEffect::step_beta_fixed(double stepsize)
+{
+    beta_fixed += stepsize *  H_beta_fixed.ldlt().solve(grad_beta_f);
+    grad_beta_f.setZero(Bf[0].cols());
+    H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
+  
+}
+void NormalMixedEffect::step_beta_random(double stepsize)
+{
+    beta_random += (0.5 * stepsize) *  H_beta_random.ldlt().solve(grad_beta_r);
+    beta_random += (0.5 * stepsize) * (Sigma * grad_beta_r2)/ counter;
+    grad_beta_r.setZero(Br[0].cols());
+    grad_beta_r2.setZero(Br[0].cols());
+    H_beta_random.setZero(Br[0].cols(), Br[0].cols());
+}
+
+void NormalMixedEffect::step_Sigma(double stepsize)
+{
+    double pos_def = 0;
   iSkroniS = kroneckerProduct(invSigma, invSigma); 
   UUt -= counter*vec(Sigma); 
   dSigma_vech = 0.5 * Dd.transpose() * iSkroniS * UUt;
@@ -104,6 +185,19 @@ void NormalMixedEffect::step_theta(double stepsize)
     UUt.setZero(Sigma.cols() * Sigma.rows());
     invSigma  = Sigma.inverse();
     Sigma_vech = vech(Sigma);
-    counter = 0;
 }
 
+void NormalMixedEffect::remove_cov(const int i, Eigen::VectorXd & Y)
+{
+  if(Br.size() > 0 )
+    Y -= Br[i] * beta_random;
+  if(Bf.size() > 0)
+    Y -= Bf[i] * beta_fixed;
+}
+void NormalMixedEffect::add_cov(const int    i, Eigen::VectorXd & Y)
+{
+  if(Br.size() > 0 )
+    Y += Br[i] * beta_random;
+  if(Bf.size() > 0)
+    Y += Bf[i] * beta_fixed;
+}

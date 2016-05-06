@@ -1,5 +1,5 @@
 ###
-# exmaple for testing estimation of mixed effect.
+# exmaple for testing estimation of random effect.
 ###
 library(GHmixedeffect)
 n.pers <- 10
@@ -20,11 +20,11 @@ for(i in 1:n.pers)
 }
 
 input <- list(Y = Y_list, 
-              B = B_list, 
+              B_random = B_list, 
               Sigma = sd_beta*diag(2), 
-              beta = c(0.,0.), 
+              beta_random = c(0.,0.), 
               sigma_eps = 0.1,
-              Niter = 1000)
+              Niter = 10)
 res <- estimateME(input)
 print(res$beta)
 print(res$sigma_eps)

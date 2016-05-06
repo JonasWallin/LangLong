@@ -21,9 +21,9 @@ for(i in 1:n.pers)
 }
 
 input <- list(Y = Y_list, 
-              B = B_list, 
+              B_random = B_list, 
               Sigma = sd_beta*diag(5), 
-              beta = rep(0,5), 
+              beta_ranom = rep(0,5), 
               sigma_eps = 0.1,
               Niter = 2000)
 res <- estimateME(input)

@@ -22,9 +22,9 @@ for(i in 1:n.pers)
 }
 
 input <- list(Y = Y_list, 
-              B = B_list, 
+              B_random = B_list, 
               Sigma = diag(2), 
-              beta = c(0.9,0.4), 
+              beta_random = c(0.9,0.4), 
               sigma_eps = 0.5,
               Niter = 20)
 res <- estimateME(input)

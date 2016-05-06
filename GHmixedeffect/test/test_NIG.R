@@ -29,5 +29,5 @@ for(i in 1:n.pers)
 }
 beta_mat <- t(matrix(unlist(beta_list), nrow= 2, ncol = n.pers))
 x11()
-hist(beta_mat[,1])
+hist(beta_mat[,1],100)
 #hist(beta_mat[,2])

@@ -1,6 +1,7 @@
 #
 # test sampling N_C(mu, Q)
 #
+library(GHmixedeffect)
 Q  <- diag(4)
 mu <- rep(4, 4)
 n_sample <- 10000
