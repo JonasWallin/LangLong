@@ -3,9 +3,6 @@
 using namespace Rcpp;
 #include "MixedEffect.h"
 
-// Below is a simple example of exporting a C++ function to R. You can
-// source this function into an R session using the Rcpp::sourceCpp 
-// function (or via the Source button on the editor toolbar)
 
 // For more on using Rcpp click the Help button on the editor toolbar
 
@@ -81,4 +78,43 @@ Rcpp::List estimateME(Rcpp::List input)
   output["sigma_eps"]   = exp(0.5 * log_sigma2_eps);
   output["mixedeffect"] = mixobj->toList();
   return(output);
+}
+
+
+// [[Rcpp::export]]
+Eigen::VectorXd samplePostV(Rcpp::List input)
+{
+  
+  Rcpp::List Ys_list = Rcpp::as< Rcpp::List > (input["Y"]);
+  int nobs = Ys_list.length();
+  std::vector< Eigen::VectorXd > Ys(nobs);
+  double log_sigma2_eps = 2 * log(Rcpp::as< double  > (input["sigma_eps"]));
+  int Niter  = Rcpp::as< double  > (input["Niter"]);
+  int count =0;
+  
+  double n = 0;
+  // init data effect
+  for( List::iterator it = Ys_list.begin(); it != Ys_list.end(); ++it ) {
+    Ys[count] = Rcpp::as < Eigen::VectorXd >( it[0]);
+    n += Ys[count].size();
+    count++;
+  }
+ 
+  NIGMixedEffect mixobj;
+   
+  mixobj.initFromList(input);
+  Eigen::VectorXd Vs;
+  Vs.resize(Niter);
+  for(int iter = 0; iter < Niter; iter++)
+  {
+    for(int i =0; i < nobs; i++)
+    {
+      Eigen::VectorXd  res = Ys[i];
+      mixobj.remove_cov(i, res);
+      mixobj.sampleU(i, res, log_sigma2_eps);
+      
+    }
+    Vs[iter] = mixobj.V[0];
+  } 
+  return(Vs);
 }

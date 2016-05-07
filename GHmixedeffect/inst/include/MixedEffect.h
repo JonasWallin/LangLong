@@ -83,13 +83,21 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::VectorXd dSigma_vech;
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
-    Eigen::VectorXd gradMu;
     
+    Eigen::VectorXd gradMu;
+    Eigen::VectorXd gradMu_r;
+    Eigen::VectorXd grad_beta_r; // gradient for random intercept
+    Eigen::VectorXd grad_beta_r2; //second gradient for random intercept
+    Eigen::VectorXd grad_beta_f; // gradient for fixed intercept
+    Eigen::MatrixXd H_beta_random; // obsereved fisher infromation for random effect
+    Eigen::MatrixXd H_beta_fixed;// obsereved fisher infromation for fixed effect
+  
     double a_GIG;
     gig rgig;
     
     void step_Sigma(double stepsize);
     void step_mu(double stepsize);
+    
   public:
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
@@ -105,9 +113,13 @@ class NIGMixedEffect  : public MixedEffect{
     void sampleU(const int, const Eigen::VectorXd &, const double) ;
     void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= B[i]*U.col(i);} ;
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += B[i]*U.col(i);} ;
+    void remove_cov(const int , Eigen::VectorXd & );
+    void add_cov(const int    , Eigen::VectorXd & );
     void gradient(const int , const Eigen::VectorXd& , const double );
     void step_theta(double stepsize);
     Rcpp::List toList();
+  
+  
   
 };
 
