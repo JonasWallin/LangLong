@@ -43,7 +43,7 @@ Rcpp::List estimateME(Rcpp::List input)
   if(noise == "Normal")
     mixobj = new NormalMixedEffect;
   else
-    mixobj = new NormalMixedEffect;
+    mixobj = new NIGMixedEffect;
    
   mixobj->initFromList(input);
   Eigen::VectorXd dbeta;

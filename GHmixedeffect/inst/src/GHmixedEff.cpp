@@ -4,6 +4,7 @@
 
 NIGMixedEffect::NIGMixedEffect(){
   counter = 0;
+  noise = "NIG";
 } 
 Rcpp::List NIGMixedEffect::toList()
 {
@@ -96,7 +97,6 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     
     a_GIG = mu.transpose() * (invSigma *  mu);
     a_GIG += nu;
-    
     rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
       
   }else{ Br.resize(0);}
@@ -132,31 +132,31 @@ void NIGMixedEffect::gradient(const int i,
                               const Eigen::VectorXd& res,
                               const double log_sigma2_noise)
 {
-    counter++;
     if(Br.size() > 0){
-      Eigen::VectorXd B_mu;
-      B_mu.setOnes(U.col(i).size());
-      B_mu         *= -1; 
-      B_mu.array() += V(i); 
-      Eigen::VectorXd U_ = U.col(i) - B_mu * mu; 
-      Eigen::MatrixXd UUT =  (U_ * U_.transpose());
-      UUT /= V(i);
+      
+      Eigen::VectorXd U_ = U.col(i) - (-1 + V(i)) * mu; 
+      gradient_sigma(i, U_);
       
       // V
       // X-V...
-      UUt    += vec( UUT);
       gradMu += (-1 + V(i) ) * (invSigma * U_); 
       
       // dtau
     }
+    counter++;
 }
-
+void NIGMixedEffect::gradient_sigma(const int i, Eigen::VectorXd& U_ )
+{
+  Eigen::MatrixXd UUT =  (U_ * U_.transpose());
+  UUT.array() /= V(i);
+  UUt    += vec( UUT);
+}
 void NIGMixedEffect::step_theta(double stepsize)
 {
-   
+    step_Sigma(stepsize);
     a_GIG = mu.transpose() * (invSigma * mu);
     a_GIG += nu;
-    gradMu.setZero(B[0].cols(), 1);
+    counter = 0;
 }
 void NIGMixedEffect::step_Sigma(double stepsize)
 {
@@ -187,7 +187,6 @@ void NIGMixedEffect::step_Sigma(double stepsize)
     UUt.setZero(Sigma.cols() * Sigma.rows());
     invSigma  = Sigma.inverse();
     Sigma_vech = vech(Sigma);
-    counter = 0;
 }
 
 void NIGMixedEffect::step_mu(double stepsize)

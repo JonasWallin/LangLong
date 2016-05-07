@@ -15,6 +15,7 @@ Eigen::VectorXd sampleNormalCan(const Eigen::VectorXd & b,const Eigen::MatrixXd 
 
 NormalMixedEffect::NormalMixedEffect(){
   counter = 0;
+  noise = "Normal";
   //dlog_sigma2  = 0;
   //ddlog_sigma2 = 0;
 } 

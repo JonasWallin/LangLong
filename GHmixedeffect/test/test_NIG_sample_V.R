@@ -6,8 +6,7 @@ graphics.off()
 rm(list=ls())
 library(GHmixedeffect)
 
-f <- function(v, sd_Y, sd, y, nu, mu  = 0){ 
-  
+f <- function(v, sd_Y, sd, y, nu, mu  = 0){  
     dens <- exp(-(y -(- mu + v*mu))^2/(2 * (sd_Y^2 + sd^2 * v ))) / sqrt(sd_Y^2 + sd^2 * v)
     dens <- dens * v^(-1.5) * exp(- nu/2 * (v + v^-1))
     dens[v == 0] <- 0
@@ -39,7 +38,7 @@ input <- list(Y = Y_list,
               Sigma = sd_beta^2*diag(1), 
               beta_random = beta_r, 
               sigma_eps = 0.1,
-              Niter = 20000,
+              Niter = 200,
               nu = nu)
 res <- samplePostV(input)
 
@@ -67,3 +66,43 @@ dens <- g(x)
 hist(res,100, prob=T)
 lines(x, dens/integrate(g,0,Inf)$value, col='red' )
 #plot(x, dens/integrate(g,0,Inf)$value, col='red')
+
+##
+# multiversion
+#
+##
+
+fmult <- function(v, sd_Y, Sigma, y, nu, B, mu){  
+  Vy <- sd_Y^2 + v * B%*%Sigma %*%t(B)
+  dens <- exp(-(y - B%*%beta_r- (-1 + v) * B%*%mu)^2/(2 * Vy)) / sqrt(Vy)
+  dens <- dens * v^(-1.5) * exp(- nu/2 * (v + v^-1))
+  dens[v == 0] <- 0
+  return(dens)
+}
+
+
+Sigma <- matrix(c(0.2,0.1,0.1,0.2), ncol = 2, nrow = 2)
+beta_r <- c(-1.,1.3)
+Br_list[[1]] <- t(as.matrix(c(1.,2.)))
+
+x11()
+par(mfrow=c(2,1))
+mus = matrix(c(0.0,0.4,0.0,0.2), ncol = 2, nrow = 2)
+for (i in 1:2){
+  input <- list(Y = Y_list, 
+                B_random = Br_list,
+                Sigma = Sigma, 
+                beta_random = as.matrix(beta_r), 
+                sigma_eps = 0.1,
+                Niter = 1000,
+                nu = nu,
+                mu = as.matrix(mus[i,]))
+  
+  res <- samplePostV(input)
+  
+  g <- function(x){ fmult(x, sd_Y, Sigma, Y_list[[1]], nu, mu =input$mu, B = Br_list[[1]])} 
+  dens <- g(x)
+  hist(res,100, prob=T)
+  lines(x, dens/integrate(g,0,Inf)$value, col='red' )
+  #plot(x, dens/integrate(g,0,Inf)$value, col='red' )
+}

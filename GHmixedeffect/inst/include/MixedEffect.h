@@ -13,8 +13,9 @@ class MixedEffect {
   protected:
   
   public:
+    Eigen::MatrixXd Sigma;
+    std::string noise;
     Eigen::MatrixXd U;
-    std::vector< Eigen::MatrixXd > B;
     std::vector< Eigen::MatrixXd > Bf; // fixed covariates
     std::vector< Eigen::MatrixXd > Br; // mixed covariates
     Eigen::VectorXd beta_random;
@@ -50,11 +51,9 @@ class NormalMixedEffect  : public MixedEffect{
     Eigen::MatrixXd H_beta_fixed;// obsereved fisher infromation for fixed effect
   public:
   
-    std::string noise = "Normal";
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
   
-    Eigen::MatrixXd Sigma;
   
     NormalMixedEffect();
     void initFromList(Rcpp::List const &);
@@ -64,6 +63,7 @@ class NormalMixedEffect  : public MixedEffect{
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
     void gradient(const int , const Eigen::VectorXd&, const double );
+    
     void step_theta(double stepsize);
     void step_Sigma(double stepsize);
     void step_beta_fixed(double stepsize);
@@ -105,17 +105,17 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::VectorXd mu;
     double          nu;
   
-    Eigen::MatrixXd Sigma;
   
     NIGMixedEffect();
     void sampleV(const int);
     void initFromList(Rcpp::List const &);
     void sampleU(const int, const Eigen::VectorXd &, const double) ;
-    void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= B[i]*U.col(i);} ;
-    void add_inter(const int i, Eigen::VectorXd & Y)    {Y += B[i]*U.col(i);} ;
+    void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= Br[i]*U.col(i);} ;
+    void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
     void gradient(const int , const Eigen::VectorXd& , const double );
+    void gradient_sigma(const int , Eigen::VectorXd& );
     void step_theta(double stepsize);
     Rcpp::List toList();
   
