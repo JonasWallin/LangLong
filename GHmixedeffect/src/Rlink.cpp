@@ -49,8 +49,16 @@ Rcpp::List estimateME(Rcpp::List input)
   Eigen::VectorXd dbeta;
   Eigen::MatrixXd d2beta;
   
-  
-  
+  Eigen::MatrixXd muVec;
+  Eigen::MatrixXd betarVec;
+  Eigen::VectorXd nuVec;
+  if(mixobj->Br.size() > 0){
+    if(noise == "NIG"){
+      muVec.resize(Niter, mixobj->Br[0].cols());
+      nuVec.resize(Niter);
+    }
+    betarVec.resize(Niter, mixobj->Br[0].cols());
+  }
   for(int iter = 0; iter < Niter; iter++){
     double d2sigma  = 0;
     double dsigma   = 0;
@@ -59,14 +67,20 @@ Rcpp::List estimateME(Rcpp::List input)
     {
       Eigen::VectorXd  res = Ys[i];
       mixobj->remove_cov(i, res);
-      mixobj->sampleU(i, res, log_sigma2_eps);
+      mixobj->sampleU(i , res, log_sigma2_eps);
       mixobj->gradient(i, res, log_sigma2_eps);
       mixobj->remove_inter(i, res);
       d2sigma -=  0.5 * exp(-log_sigma2_eps)*res.array().square().sum();
       dsigma  += -0.5 * res.size();
       
     }
-    
+    if(mixobj->Br.size() > 0){
+      if(noise == "NIG"){
+        muVec.row(iter) = ((NIGMixedEffect*) mixobj)->mu;
+        nuVec(iter) = ((NIGMixedEffect*) mixobj)->nu;
+      }
+      betarVec.row(iter) = mixobj->beta_random;
+    }
     mixobj->step_theta(0.33);
     dsigma -= d2sigma;
     log_sigma2_eps += dsigma / n; 
@@ -77,6 +91,13 @@ Rcpp::List estimateME(Rcpp::List input)
   output["beta"]        = mixobj->beta_random;
   output["sigma_eps"]   = exp(0.5 * log_sigma2_eps);
   output["mixedeffect"] = mixobj->toList();
+  if(mixobj->Br.size() > 0){
+    if(noise == "NIG"){
+      output["mu"] = muVec;
+      output["nuVec"] = nuVec;
+      }
+    output["betaVec"]        = betarVec;
+  }
   return(output);
 }
 

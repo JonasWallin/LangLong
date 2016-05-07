@@ -84,6 +84,8 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
     
+    
+    double  grad_nu; // gradient for shape parameter
     Eigen::VectorXd gradMu; // gradient for skewness 
     Eigen::VectorXd gradMu_2;// second gradient for skewness 
     Eigen::VectorXd grad_beta_r; // gradient for random intercept
@@ -99,6 +101,7 @@ class NIGMixedEffect  : public MixedEffect{
     
     void step_Sigma(double stepsize);
     void step_mu(double stepsize);
+    void step_nu(double stepsize);
     
   public:
     Eigen::MatrixXi D;

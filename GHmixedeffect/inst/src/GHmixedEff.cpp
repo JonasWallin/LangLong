@@ -95,7 +95,7 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     else
       nu = 1.;
       
-    
+    grad_nu = 0.;
     EV  = 1.; 
     EiV = 1. + 1./nu;  
     VV  = 1./nu;
@@ -138,13 +138,14 @@ void NIGMixedEffect::gradient(const int i,
                               const Eigen::VectorXd& res,
                               const double log_sigma2_noise)
 {
+    Eigen::VectorXd res_  = res;
     if(Br.size() > 0){
       
       Eigen::VectorXd U_ = U.col(i) - (-1 + V(i)) * mu; 
       gradient_sigma(i, U_);
       
       
-      Eigen::VectorXd res_  = res;
+     
       res_ -= Br[i] * U.col(i);
       grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * res_);
       grad_beta_r2 +=  (invSigma * U_)/V(i);
@@ -153,9 +154,15 @@ void NIGMixedEffect::gradient(const int i,
 
       gradMu   += ((-1 + V(i) )/V(i) ) * (invSigma * U_); 
       
-      //res_ -=  (-1 + V(i) ) * (Br[i] * mu);
       gradMu_2 += (-1 + V(i) ) * exp( - log_sigma2_noise) * (Br[i].transpose() * res_);
-      // dtau
+      
+      
+      // dnu
+      grad_nu += 0.5 * (1. / nu - V(i) - 1. / V(i) + 2. );
+    }
+    if(Bf.size() > 0){
+      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * res_);
+      H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
     }
     counter++;
 }
@@ -171,12 +178,14 @@ void NIGMixedEffect::step_theta(double stepsize)
     step_beta_random(stepsize);
     step_mu(stepsize);
     step_Sigma(stepsize);
+    step_nu(stepsize);
     a_GIG = mu.transpose() * (invSigma * mu);
     a_GIG += nu;
-    EiV = 1. + 1./nu;
-    VV = 1./nu;
     H_beta_random.setZero(Br[0].cols(), Br[0].cols());
   }
+  
+  if(Bf.size() > 0)
+    step_beta_fixed(stepsize);
     counter = 0;
 }
 void NIGMixedEffect::step_Sigma(double stepsize)
@@ -220,6 +229,42 @@ void NIGMixedEffect::step_mu(double stepsize)
     gradMu_2.setZero(Br[0].cols(), 1);
 }
 
+void NIGMixedEffect::step_nu(double stepsize)
+{
+   grad_nu  *=  (nu * nu) / (2. * counter); //hessian
+  double nu_old = nu;
+  nu += stepsize  * grad_nu;
+  while(nu < 0){
+    nu = nu_old;
+    stepsize *= 0.5; 
+    nu += stepsize  * grad_nu;
+    if(stepsize <= 1e-16){
+        Rcpp::Rcout << "nu = \n" << nu << "\n";
+        Rcpp::Rcout << "grad_nu = " << grad_nu <<"\n"; 
+        throw("in NIGmidexeffect nu is zero \n");   
+    }
+  }
+  
+  grad_nu = 0;
+  EiV = 1. + 1./nu;
+  VV = 1./nu;
+}
+void NIGMixedEffect::step_beta_fixed(double stepsize)
+{
+    beta_fixed += stepsize *  H_beta_fixed.ldlt().solve(grad_beta_f);
+    grad_beta_f.setZero(Bf[0].cols());
+    H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
+  
+}
+void NIGMixedEffect::step_beta_random(double stepsize)
+{
+    beta_random += (0.5 * stepsize) *  H_beta_random.ldlt().solve(grad_beta_r);
+    beta_random += (0.5 * stepsize) * (Sigma * grad_beta_r2)/ (counter * EiV);
+    grad_beta_r.setZero(Br[0].cols());
+    grad_beta_r2.setZero(Br[0].cols());   
+}
+
+
 void NIGMixedEffect::remove_cov(const int i, Eigen::VectorXd & Y)
 {
   if(Br.size() > 0 )
@@ -233,20 +278,4 @@ void NIGMixedEffect::add_cov(const int i, Eigen::VectorXd & Y)
     Y += Br[i] * beta_random;
   if(Bf.size() > 0)
     Y += Bf[i] * beta_fixed;
-}
-
-void NIGMixedEffect::step_beta_fixed(double stepsize)
-{
-    beta_fixed += stepsize *  H_beta_fixed.ldlt().solve(grad_beta_f);
-    grad_beta_f.setZero(Bf[0].cols());
-    H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
-  
-}
-void NIGMixedEffect::step_beta_random(double stepsize)
-{
-    beta_random += (0.5 * stepsize) *  H_beta_random.ldlt().solve(grad_beta_r);
-    beta_random += (0.5 * stepsize) * (Sigma * grad_beta_r2)/ (counter * EiV);
-    grad_beta_r.setZero(Br[0].cols());
-    grad_beta_r2.setZero(Br[0].cols());
-    
 }

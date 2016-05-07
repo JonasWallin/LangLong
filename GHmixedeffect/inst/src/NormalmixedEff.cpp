@@ -134,10 +134,9 @@ void NormalMixedEffect::step_theta(double stepsize)
     step_beta_random(stepsize);
     step_Sigma(stepsize);
   }
-  
-  if(Bf.size() > 0){
+  if(Bf.size() > 0)
     step_beta_fixed(stepsize);
-  }
+  
   
   counter = 0;
 }
