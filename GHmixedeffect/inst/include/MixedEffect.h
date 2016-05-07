@@ -84,14 +84,16 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
     
-    Eigen::VectorXd gradMu;
-    Eigen::VectorXd gradMu_r;
+    Eigen::VectorXd gradMu; // gradient for skewness 
+    Eigen::VectorXd gradMu_2;// second gradient for skewness 
     Eigen::VectorXd grad_beta_r; // gradient for random intercept
     Eigen::VectorXd grad_beta_r2; //second gradient for random intercept
     Eigen::VectorXd grad_beta_f; // gradient for fixed intercept
     Eigen::MatrixXd H_beta_random; // obsereved fisher infromation for random effect
     Eigen::MatrixXd H_beta_fixed;// obsereved fisher infromation for fixed effect
-  
+    double EV; //  prior expecation  of V, used for the Hessian of random effects
+    double EiV; // prior expectation of 1/V used for the Hessian of random effects
+    double VV; // prior variance of V used for the Hessian of random effects
     double a_GIG;
     gig rgig;
     
@@ -117,6 +119,8 @@ class NIGMixedEffect  : public MixedEffect{
     void gradient(const int , const Eigen::VectorXd& , const double );
     void gradient_sigma(const int , Eigen::VectorXd& );
     void step_theta(double stepsize);
+    void step_beta_fixed(double stepsize);
+    void step_beta_random(double stepsize);
     Rcpp::List toList();
   
   

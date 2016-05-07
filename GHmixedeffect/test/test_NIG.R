@@ -16,8 +16,8 @@ sd_Y    <- 0.1 # error of the noise
 
 Br_list <- list()
 betar <- c(0.9,0.4)
-mu   <- -c(0.2, -0.2)
-nu <- .7
+mu   <- c(0.2, -0.2)
+nu <- 0.7
 betar_list <- list()
 V_list    <- list()
 Y_list    <- list()
@@ -36,18 +36,19 @@ for(i in 1:n.pers)
 input <- list(Y = Y_list, 
               B_random    = Br_list, 
               Sigma       = COV_beta, 
-              beta_random = betar, 
+              beta_random = c(0,0.), 
               sigma_eps = sd_Y,
-              mu = as.matrix(mu),
+              mu = 0*as.matrix(mu),
               nu = as.matrix(nu),
-              Niter = 10,
+              Niter = 1000,
               noise = "NIG")
 
 beta_mat <- t(matrix(unlist(betar_list), nrow= 2, ncol = n.pers))
-#x11()
-#hist(beta_mat[,1],100)
-#hist(beta_mat[,2])
+x11()
+par(mfrow=c(2,1))
+hist(beta_mat[,1],100)
+hist(beta_mat[,2],100)
 res <- estimateME(input)
 print(res$mixedeffect$Sigma)
-print(cov(beta_mat))
-print(cov(t(res$mixedeffect$U)))
+print(res$mixedeffect$beta_random)
+print(res$mixedeffect$mu)
