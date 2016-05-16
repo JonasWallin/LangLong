@@ -1,6 +1,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 using namespace Rcpp;
+#include "measError.h"
 #include "MixedEffect.h"
 
 
@@ -21,7 +22,9 @@ Rcpp::List estimateME(Rcpp::List input)
   int nobs = Ys_list.length();
   
   std::vector< Eigen::VectorXd > Ys(nobs);
-  double log_sigma2_eps = 2 * log(Rcpp::as< double  > (input["sigma_eps"]));
+  GaussianMeasurementError *errObj;
+  errObj = new GaussianMeasurementError;
+  errObj->sigma = input["sigma_eps"];
   int Niter  = Rcpp::as< double  > (input["Niter"]);
   int count =0;
   
@@ -52,6 +55,7 @@ Rcpp::List estimateME(Rcpp::List input)
   Eigen::MatrixXd muVec;
   Eigen::MatrixXd betarVec;
   Eigen::VectorXd nuVec;
+  Eigen::VectorXd sigmaVec;
   if(mixobj->Br.size() > 0){
     if(noise == "NIG"){
       muVec.resize(Niter, mixobj->Br[0].cols());
@@ -59,21 +63,19 @@ Rcpp::List estimateME(Rcpp::List input)
     }
     betarVec.resize(Niter, mixobj->Br[0].cols());
   }
+  sigmaVec.resize(Niter);
   for(int iter = 0; iter < Niter; iter++){
-    double d2sigma  = 0;
-    double dsigma   = 0;
     
     for(int i =0; i < nobs; i++)
     {
       Eigen::VectorXd  res = Ys[i];
       mixobj->remove_cov(i, res);
-      mixobj->sampleU(i , res, log_sigma2_eps);
-      mixobj->gradient(i, res, log_sigma2_eps);
+      mixobj->sampleU(i , res, 2 * log(errObj->sigma));
+      mixobj->gradient(i, res, 2 * log(errObj->sigma));
       mixobj->remove_inter(i, res);
-      d2sigma -=  0.5 * exp(-log_sigma2_eps)*res.array().square().sum();
-      dsigma  += -0.5 * res.size();
-      
+      errObj->gradient(i, res);
     }
+    
     if(mixobj->Br.size() > 0){
       if(noise == "NIG"){
         muVec.row(iter) = ((NIGMixedEffect*) mixobj)->mu;
@@ -82,22 +84,25 @@ Rcpp::List estimateME(Rcpp::List input)
       betarVec.row(iter) = mixobj->beta_random;
     }
     mixobj->step_theta(0.33);
-    dsigma -= d2sigma;
-    log_sigma2_eps += dsigma / n; 
-    
+    errObj->step_theta(0.33);
+    sigmaVec[iter] = errObj->sigma;
   }
   //mixobj.sampleU(0, Ys[0], 0);
   Rcpp::List output;
   output["beta"]        = mixobj->beta_random;
-  output["sigma_eps"]   = exp(0.5 * log_sigma2_eps);
+  output["sigma_eps"]   = errObj->sigma;
   output["mixedeffect"] = mixobj->toList();
+  output["measerror"]   = errObj->toList();
   if(mixobj->Br.size() > 0){
     if(noise == "NIG"){
-      output["mu"] = muVec;
-      output["nuVec"] = nuVec;
+      output["mu"]      = muVec;
+      output["nuVec"]   = nuVec;
       }
-    output["betaVec"]        = betarVec;
+    output["betaVec"]   = betarVec;
+    output["sigma_eps"]     = sigmaVec;
   }
+  delete mixobj;
+  delete errObj;
   return(output);
 }
 
