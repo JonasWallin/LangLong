@@ -40,3 +40,14 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// estimateNIGnoise
+Rcpp::List estimateNIGnoise(Rcpp::List input);
+RcppExport SEXP GHmixedeffect_estimateNIGnoise(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type input(inputSEXP);
+    __result = Rcpp::wrap(estimateNIGnoise(input));
+    return __result;
+END_RCPP
+}

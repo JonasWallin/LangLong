@@ -144,3 +144,49 @@ Eigen::VectorXd samplePostV(Rcpp::List input)
   } 
   return(Vs);
 }
+
+/*
+	Function for estimating nu and sigma in measurement
+	mainly a debug function but can be used for real
+*/
+// [[Rcpp::export]]
+Rcpp::List estimateNIGnoise(Rcpp::List input)
+{
+	NIGMeasurementError *errObj;
+	errObj = new NIGMeasurementError;
+	errObj->initFromList(input);
+	
+	// read the data
+	Rcpp::List Ys_list = Rcpp::as< Rcpp::List > (input["Y"]);
+	int nobs = Ys_list.length();
+	std::vector< Eigen::VectorXd > Ys(nobs);
+	int count = 0;
+    for( List::iterator it = Ys_list.begin(); it != Ys_list.end(); ++it ) 
+    	Ys[count++] = Rcpp::as < Eigen::VectorXd >( it[0]);
+  
+  
+  
+    int Niter  = Rcpp::as< double  > (input["Niter"]); 
+    Eigen::VectorXd sigmaVec, nuVec;
+    sigmaVec.resize(Niter);
+    nuVec.resize(Niter);
+    for(int iter = 0; iter < Niter; iter++){
+    
+    	for(int i =  0; i < nobs; i++)
+    	{
+      		errObj->sampleV(i, Ys[i]);
+      		errObj->gradient(i, Ys[i]);
+    	}
+    	errObj->step_theta(0.33);
+    	sigmaVec[iter] = errObj->sigma;
+    	nuVec[iter]    = ((NIGMeasurementError*) errObj)->nu;
+    }
+  
+ 	Rcpp::List output = errObj->toList();
+ 	output["sigmaVec"] = sigmaVec;
+ 	output["nuVec"]    = nuVec;
+	delete errObj;
+	return(output);
+}
+
+

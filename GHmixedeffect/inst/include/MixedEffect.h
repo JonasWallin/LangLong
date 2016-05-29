@@ -27,8 +27,10 @@ class MixedEffect {
     virtual void add_cov(const int    , Eigen::VectorXd & )  = 0;
     virtual void add_inter(const int, Eigen::VectorXd &)     = 0;
     virtual void remove_inter(const int, Eigen::VectorXd &)  = 0;
-    
+    // gradient for fixed variance noise
     virtual void gradient(const int , const Eigen::VectorXd&, const double ) = 0;
+    // gradient for variable variance noise  
+    virtual void gradient2(const int , const Eigen::VectorXd&, const Eigen::VectorXd& ) = 0;
     virtual void step_theta(double stepsize) = 0;
   
   
@@ -62,12 +64,15 @@ class NormalMixedEffect  : public MixedEffect{
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
-    void gradient(const int , const Eigen::VectorXd&, const double );
+    void gradient(const int  , const Eigen::VectorXd&, const double );
+    void gradient2(const int i, const Eigen::VectorXd& res, const Eigen::VectorXd& V){};
+    
     
     void step_theta(double stepsize);
     void step_Sigma(double stepsize);
     void step_beta_fixed(double stepsize);
     void step_beta_random(double stepsize);
+    
     Rcpp::List toList();
   
 };
@@ -119,6 +124,7 @@ class NIGMixedEffect  : public MixedEffect{
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
+    void gradient2(const int i, const Eigen::VectorXd& res, const Eigen::VectorXd& V){};
     void gradient(const int , const Eigen::VectorXd& , const double );
     void gradient_sigma(const int , Eigen::VectorXd& );
     void step_theta(double stepsize);

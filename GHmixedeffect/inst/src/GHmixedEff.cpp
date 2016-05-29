@@ -78,9 +78,9 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     //
     // variance components
     if( init_list.containsElementNamed("V" ))
-      V = Rcpp::as< Eigen::MatrixXd > (init_list["V"]) ;
+      V = Rcpp::as< Eigen::VectorXd > (init_list["V"]) ;
     else
-      V.setOnes(Br.size(), 1);
+      V.setOnes(Br.size());
       
     if( init_list.containsElementNamed("mu" ))
       mu = Rcpp::as< Eigen::MatrixXd > (init_list["mu"]) ;

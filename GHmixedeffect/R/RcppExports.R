@@ -13,3 +13,7 @@ samplePostV <- function(input) {
     .Call('GHmixedeffect_samplePostV', PACKAGE = 'GHmixedeffect', input)
 }
 
+estimateNIGnoise <- function(input) {
+    .Call('GHmixedeffect_estimateNIGnoise', PACKAGE = 'GHmixedeffect', input)
+}
+
