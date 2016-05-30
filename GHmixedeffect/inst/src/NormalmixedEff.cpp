@@ -97,9 +97,25 @@ void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
 
 
 
+void NormalMixedEffect::sampleU2(const int i, 
+                                const Eigen::VectorXd& res,
+                                const Eigen::VectorXd& iV,
+                                const double log_sigma2_noise //= 0
+                                )
+{
+    if(Br.size() == 0)
+      return;
+
+	
+    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res));
+    Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * iV.asDiagonal() * Br[i];
+    Q        +=  invSigma;
+    U.col(i) =   sample_Nc(b, Q); 
+}
+
 void NormalMixedEffect::sampleU(const int i, 
                                 const Eigen::VectorXd& res,
-                                const double log_sigma2_noise)
+                                const double log_sigma2_noise )
 {
     if(Br.size() == 0)
       return;
@@ -110,6 +126,30 @@ void NormalMixedEffect::sampleU(const int i,
     U.col(i) =   sample_Nc(b, Q); 
 }
 
+void NormalMixedEffect::gradient2(const int i, 
+                                 const Eigen::VectorXd& res,
+                                 const Eigen::VectorXd& iV,
+                                 const double log_sigma2_noise,  // = 0
+                                 const double EiV // = 0
+                                 )
+{
+    counter++;
+    Eigen::VectorXd res_  = res;
+    if(Br.size() > 0){
+      res_ -= Br[i] * U.col(i);
+      Eigen::MatrixXd UUT = U.col(i) * U.col(i).transpose();
+      UUt += vec( UUT);
+      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res_));
+      grad_beta_r2 +=  (invSigma * U.col(i));
+      //H_beta_random +=   exp( - log_sigma2_noise) * (Br[i].transpose() * iV.asDiagonal()* Br[i]);
+      H_beta_random +=  EiV *exp( - log_sigma2_noise) * (Br[i].transpose()* Br[i]);
+    }
+    if(Bf.size() > 0){
+      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * (iV * res_));
+      //H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() *iV.asDiagonal()* Bf[i]);
+      H_beta_fixed  +=  EiV * exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
+    }
+}
 void NormalMixedEffect::gradient(const int i, 
                                  const Eigen::VectorXd& res,
                                  const double log_sigma2_noise)
@@ -127,7 +167,8 @@ void NormalMixedEffect::gradient(const int i,
     if(Bf.size() > 0){
       grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * res_);
       H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
-    }}
+    }
+}
 void NormalMixedEffect::step_theta(double stepsize)
 {
   if(Br.size() > 0){

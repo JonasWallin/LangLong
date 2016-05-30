@@ -10,6 +10,8 @@ GaussianMeasurementError::GaussianMeasurementError(){
   sigma   = 0;
   dsigma  = 0;
   ddsigma = 0;
+  EV  = 1.;  // if there the random variance in the Noise E[V]
+  EiV = 1.; 
   noise = "Normal";
 } 
 Rcpp::List GaussianMeasurementError::toList()

@@ -23,6 +23,11 @@ class MixedEffect {
     virtual void initFromList(Rcpp::List const &)=0;
     virtual Rcpp::List toList()=0;
     virtual void sampleU(const int, const Eigen::VectorXd &,  const double ) = 0;
+    // sampleU2 is sampling with diagonal covariance matrix for the noise
+    virtual void sampleU2(const int, 
+      					  const Eigen::VectorXd &,
+      					  const Eigen::VectorXd &,
+      					  const double  ) = 0;
     virtual void remove_cov(const int , Eigen::VectorXd & )  = 0;
     virtual void add_cov(const int    , Eigen::VectorXd & )  = 0;
     virtual void add_inter(const int, Eigen::VectorXd &)     = 0;
@@ -30,7 +35,11 @@ class MixedEffect {
     // gradient for fixed variance noise
     virtual void gradient(const int , const Eigen::VectorXd&, const double ) = 0;
     // gradient for variable variance noise  
-    virtual void gradient2(const int , const Eigen::VectorXd&, const Eigen::VectorXd& ) = 0;
+    virtual void gradient2(const int ,
+    					   const Eigen::VectorXd&,
+    					   const Eigen::VectorXd& , 
+    					   const double,
+    					   const double) = 0;
     virtual void step_theta(double stepsize) = 0;
   
   
@@ -59,13 +68,23 @@ class NormalMixedEffect  : public MixedEffect{
   
     NormalMixedEffect();
     void initFromList(Rcpp::List const &);
-    void sampleU(const int, const Eigen::VectorXd &, const double ) ;
+    
     void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= Br[i]*U.col(i);} ;
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
     void gradient(const int  , const Eigen::VectorXd&, const double );
-    void gradient2(const int i, const Eigen::VectorXd& res, const Eigen::VectorXd& V){};
+    void gradient2(const int i,
+    			   const Eigen::VectorXd& res, 
+    			   const Eigen::VectorXd& iV,
+    			   const double log_sigma2_noise = 0,
+    			   const double EiV = 1.);
+    
+    void sampleU(const int, const Eigen::VectorXd &, const double ) ;
+    virtual void sampleU2(const int i, 
+      					  const Eigen::VectorXd & res,
+      					  const Eigen::VectorXd & iV,
+      					  const double log_sigma2 = 0);
     
     
     void step_theta(double stepsize);
@@ -120,11 +139,19 @@ class NIGMixedEffect  : public MixedEffect{
     void sampleV(const int);
     void initFromList(Rcpp::List const &);
     void sampleU(const int, const Eigen::VectorXd &, const double) ;
+    virtual void sampleU2(const int i, 
+      					  const Eigen::VectorXd & res,
+      					  const Eigen::VectorXd & iV,
+      					  const double log_sigma2_noise = 0);
     void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= Br[i]*U.col(i);} ;
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
-    void gradient2(const int i, const Eigen::VectorXd& res, const Eigen::VectorXd& V){};
+    void gradient2(const int i, 
+    			   const Eigen::VectorXd& res,
+    			   const Eigen::VectorXd& iV,
+    			   const double log_sigma2_noise = 0,
+    			   const double EiV = 1.);
     void gradient(const int , const Eigen::VectorXd& , const double );
     void gradient_sigma(const int , Eigen::VectorXd& );
     void step_theta(double stepsize);

@@ -14,7 +14,7 @@ library(MASS)
 nu <- 3
 sigma <- 2.1
 n.pers <- 2
-n.obs  <- 200
+n.obs  <- 500
 
 V_list     <- list()
 Y_list     <- list()

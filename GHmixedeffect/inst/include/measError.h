@@ -11,6 +11,9 @@ class MeasurementError {
   protected:
   
   public:
+  
+   	double EV;  // if there the random variance in the Noise E[V]
+    double EiV; // if there is random varoance in the noise E[V^-1]   
   	double sigma;
   	std::vector< Eigen::VectorXd > Vs;
     std::string noise;
@@ -48,9 +51,7 @@ class NIGMeasurementError : public MeasurementError{
 		double dnu;
 		double ddnu;
 		gig rgig;
-   	double EV; 
-    double EiV;  
-    double counter;
+    	double counter;
 
 	public:
 		double nu;
