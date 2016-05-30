@@ -20,7 +20,6 @@ Rcpp::List estimateME(Rcpp::List input)
   
   Rcpp::List Ys_list = Rcpp::as< Rcpp::List > (input["Y"]);
   int nobs = Ys_list.length();
-  
   std::vector< Eigen::VectorXd > Ys(nobs);
   
   
@@ -58,6 +57,7 @@ Rcpp::List estimateME(Rcpp::List input)
     n += Ys[count].size();
     count++;
   }
+  
   std::string noise;
   if( input.containsElementNamed("noise"))
       noise = Rcpp::as <std::string> (input["noise"]);
@@ -100,7 +100,10 @@ Rcpp::List estimateME(Rcpp::List input)
         mixobj->sampleU( i, res, 2 * log(errObj->sigma));
         mixobj->gradient(i, res, 2 * log(errObj->sigma));
       }else{
-        mixobj->sampleU2( i, res, errObj->Vs[i].cwiseInverse(), 2 * log(errObj->sigma));
+        mixobj->sampleU2( i,
+                         res, 
+                         errObj->Vs[i].cwiseInverse(), 
+                         2 * log(errObj->sigma));
         mixobj->gradient2(i,
                           res,
                           errObj->Vs[i].cwiseInverse(),

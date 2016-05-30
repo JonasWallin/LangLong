@@ -29,7 +29,8 @@ for(i in 1:n.pers)
 meas_list <- list(Vs = Vin, sigma.eps = 1., nu = 1.)
 input <- list(Y = Y_list, 
               B_random = B_list, 
-              Sigma = sd_beta*diag(2), 
+              Sigma = sd_beta*diag(2),
+              sigma_eps = 0,
               beta_random = c(0.,0.), 
               Niter = 3000,
               meas_list = meas_list,

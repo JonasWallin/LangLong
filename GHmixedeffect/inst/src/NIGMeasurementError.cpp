@@ -30,7 +30,7 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
     sigma = Rcpp::as < double >( init_list["sigma"]);
     
   if(init_list.containsElementNamed("nu"))
-    sigma = Rcpp::as < double >( init_list["nu"]);
+    nu = Rcpp::as < double >( init_list["nu"]);
  
     EV  = 1.; 
     EiV = 1. + 1./nu;  

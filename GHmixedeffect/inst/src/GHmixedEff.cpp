@@ -90,11 +90,11 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     gradMu.setZero(Br[0].cols(), 1);
     gradMu_2.setZero(Br[0].cols(), 1);
   
-    if( init_list.containsElementNamed("nu" ))
+    if( init_list.containsElementNamed("nu"))
       nu = Rcpp::as< double > (init_list["nu"]) ;
     else
       nu = 1.;
-      
+    
     grad_nu = 0.;
     EV  = 1.; 
     EiV = 1. + 1./nu;  
@@ -123,7 +123,8 @@ void NIGMixedEffect::sampleU(const int i,
                                 const Eigen::VectorXd& res,
                                 const double log_sigma2_noise)
 {
-  	if(Br.size() > 0)
+
+  	if(Br.size() == 0)
   		return;
   		
     Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * res);
@@ -144,7 +145,7 @@ void NIGMixedEffect::sampleU2(const int i,
     if(Br.size() == 0)
       return;
 
-    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res));
+    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * iV.cwiseProduct(res) );
     Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * iV.asDiagonal() * Br[i];
     Eigen::MatrixXd Qp  = invSigma / V(i);
     b += Qp * (- mu + V(i) * mu);
@@ -203,9 +204,9 @@ void NIGMixedEffect::gradient2(const int i,
       
      
       res_ -= Br[i] * U.col(i);
-      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res_));
+      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() *  iV.cwiseProduct(res_));
       grad_beta_r2 +=  (invSigma * U_)/V(i);
-      H_beta_random +=  EiV * exp( - log_sigma2_noise) * (Br[i].transpose() * Br[i]);
+      H_beta_random +=  exp( - log_sigma2_noise) * (Br[i].transpose() * iV.asDiagonal() * Br[i]);
 
 
       gradMu   += ((-1 + V(i) )/V(i) ) * (invSigma * U_); 
@@ -217,8 +218,8 @@ void NIGMixedEffect::gradient2(const int i,
       grad_nu += 0.5 * (1. / nu - V(i) - 1. / V(i) + 2. );
     }
     if(Bf.size() > 0){
-      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * (iV * res_));
-      H_beta_fixed  +=  EiV*exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
+      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() *  iV.cwiseProduct(res_));
+      H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * iV.asDiagonal() * Bf[i]);
     }
     counter++;
 }

@@ -30,7 +30,6 @@ void GaussianMeasurementError::gradient(const int i,
                                  const Eigen::VectorXd& res)
 {
     counter++;
-    
     dsigma += - res.size()/sigma + res.array().square().sum() / pow(sigma, 3);
     // Expected fisher infromation
     // res.size()/pow(sigma, 2) - 3 * E[res.array().square().sum()] /pow(sigma, 4);

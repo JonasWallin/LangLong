@@ -107,7 +107,7 @@ void NormalMixedEffect::sampleU2(const int i,
       return;
 
 	
-    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res));
+    Eigen::VectorXd b   = exp( - log_sigma2_noise) * (Br[i].transpose() * iV.cwiseProduct(res));
     Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * iV.asDiagonal() * Br[i];
     Q        +=  invSigma;
     U.col(i) =   sample_Nc(b, Q); 
@@ -139,13 +139,13 @@ void NormalMixedEffect::gradient2(const int i,
       res_ -= Br[i] * U.col(i);
       Eigen::MatrixXd UUT = U.col(i) * U.col(i).transpose();
       UUt += vec( UUT);
-      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * (iV * res_));
-      grad_beta_r2 +=  (invSigma * U.col(i));
+      grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * iV.cwiseProduct(res_));
+      grad_beta_r2 += (invSigma * U.col(i));
       //H_beta_random +=   exp( - log_sigma2_noise) * (Br[i].transpose() * iV.asDiagonal()* Br[i]);
       H_beta_random +=  EiV *exp( - log_sigma2_noise) * (Br[i].transpose()* Br[i]);
     }
     if(Bf.size() > 0){
-      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * (iV * res_));
+      grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() *  iV.cwiseProduct(res_));
       //H_beta_fixed  +=  exp( - log_sigma2_noise) * (Bf[i].transpose() *iV.asDiagonal()* Bf[i]);
       H_beta_fixed  +=  EiV * exp( - log_sigma2_noise) * (Bf[i].transpose() * Bf[i]);
     }
@@ -163,6 +163,7 @@ void NormalMixedEffect::gradient(const int i,
       grad_beta_r  += exp( - log_sigma2_noise) * (Br[i].transpose() * res_);
       grad_beta_r2 +=  (invSigma * U.col(i));
       H_beta_random +=  exp( - log_sigma2_noise) * (Br[i].transpose() * Br[i]);
+      
     }
     if(Bf.size() > 0){
       grad_beta_f   +=  exp( - log_sigma2_noise) * (Bf[i].transpose() * res_);
