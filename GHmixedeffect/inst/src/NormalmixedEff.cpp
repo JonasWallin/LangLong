@@ -28,6 +28,7 @@ Rcpp::List NormalMixedEffect::toList()
   out["beta_fixed"]  = beta_fixed;
   out["Sigma"]       = Sigma;
   out["U"]           = U;
+  out["noise"]       = noise;
   return(out);
 }
 void NormalMixedEffect::initFromList(Rcpp::List const &init_list)

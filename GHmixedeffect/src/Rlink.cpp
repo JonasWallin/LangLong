@@ -132,6 +132,7 @@ Rcpp::List estimateME(Rcpp::List input)
   }
   //mixobj.sampleU(0, Ys[0], 0);
   Rcpp::List output;
+  output["Y_list"]           = Ys_list;
   output["beta"]        = mixobj->beta_random;
   output["sigma_eps"]   = errObj->sigma;
   output["mixedeffect"] = mixobj->toList();

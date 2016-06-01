@@ -73,6 +73,11 @@ class NormalMixedEffect  : public MixedEffect{
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
+    /* computes gradient for the parameters
+    	@param index of individual
+    	@param residuals
+    	@param log_sigma2_noise (logarithm of the measurement error)
+	*/
     void gradient(const int  , const Eigen::VectorXd&, const double );
     void gradient2(const int i,
     			   const Eigen::VectorXd& res, 

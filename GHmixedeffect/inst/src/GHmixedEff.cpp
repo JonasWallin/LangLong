@@ -18,6 +18,7 @@ Rcpp::List NIGMixedEffect::toList()
   out["V"]      = V;
   out["nu"]     = nu;
   out["mu"]     = mu;
+  out["noise"]       = noise;
   return(out);
 }
 void NIGMixedEffect::initFromList(Rcpp::List const &init_list)

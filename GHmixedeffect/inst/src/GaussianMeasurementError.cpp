@@ -18,6 +18,7 @@ Rcpp::List GaussianMeasurementError::toList()
 {
   Rcpp::List out;
   out["sigma"]  = sigma;
+  out["noise"]  = noise;
   return(out);
 }
 void GaussianMeasurementError::initFromList(Rcpp::List const &init_list)

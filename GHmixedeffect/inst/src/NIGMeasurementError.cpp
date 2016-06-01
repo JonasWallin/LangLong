@@ -19,6 +19,7 @@ NIGMeasurementError::NIGMeasurementError(){
 Rcpp::List NIGMeasurementError::toList()
 {
   Rcpp::List out;
+  out["noise"]  = noise;
   out["sigma"]  = sigma;
   out["nu"]     = nu;
   out["Vs"]     = Vs;
