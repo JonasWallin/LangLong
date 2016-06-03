@@ -114,6 +114,19 @@ void NormalMixedEffect::sampleU2(const int i,
     U.col(i) =   sample_Nc(b, Q); 
 }
 
+
+void NormalMixedEffect::simulate()
+{
+	if(Br.size() == 0)
+      return;
+
+	Eigen::VectorXd b; b.setZero(Br.size());
+	for(int i = 0; i < U.cols(); i++) 
+		U.col(i) =   sample_Nc(b, invSigma); 
+}
+
+
+
 void NormalMixedEffect::sampleU(const int i, 
                                 const Eigen::VectorXd& res,
                                 const double log_sigma2_noise )

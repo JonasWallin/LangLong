@@ -18,6 +18,28 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// simulateNoise
+Rcpp::List simulateNoise(Rcpp::List input);
+RcppExport SEXP GHmixedeffect_simulateNoise(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type input(inputSEXP);
+    __result = Rcpp::wrap(simulateNoise(input));
+    return __result;
+END_RCPP
+}
+// simulateMixed
+Rcpp::List simulateMixed(Rcpp::List input);
+RcppExport SEXP GHmixedeffect_simulateMixed(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type input(inputSEXP);
+    __result = Rcpp::wrap(simulateMixed(input));
+    return __result;
+END_RCPP
+}
 // estimateME
 Rcpp::List estimateME(Rcpp::List input);
 RcppExport SEXP GHmixedeffect_estimateME(SEXP inputSEXP) {

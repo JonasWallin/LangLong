@@ -29,9 +29,13 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
 {
   if(init_list.containsElementNamed("sigma"))
     sigma = Rcpp::as < double >( init_list["sigma"]);
-    
+  else
+  	sigma  = 1.;
+  	
   if(init_list.containsElementNamed("nu"))
     nu = Rcpp::as < double >( init_list["nu"]);
+  else
+    nu = 1.;
  
     EV  = 1.; 
     EiV = 1. + 1./nu;  
@@ -48,6 +52,23 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
     
     
 }
+
+std::vector< Eigen::VectorXd > NIGMeasurementError::simulate(std::vector< Eigen::VectorXd > Y)
+{
+	
+	std::vector< Eigen::VectorXd > residual( Y.size());
+	for(int i = 0; i < Y.size(); i++){
+		residual[i] =   sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y[i].size()) ));
+		for(int ii = 0; ii < residual[i].size(); ii++)
+		{
+			double V = rgig.sample(-0.5, nu, nu);
+			residual[i][ii] *=  sqrt(V);
+		}
+		
+	}
+	return(residual);
+}
+
 void NIGMeasurementError::sampleV(const int i, const Eigen::VectorXd& res){
 
         for(int j = 0; j < Vs[i].size(); j++)

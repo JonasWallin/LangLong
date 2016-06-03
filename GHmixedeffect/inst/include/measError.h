@@ -22,7 +22,10 @@ class MeasurementError {
     virtual void initFromList(Rcpp::List const &)=0;
     virtual Rcpp::List toList()=0;
     virtual void sampleV(const int , const Eigen::VectorXd& ) = 0;
-  
+    
+    // sampling from the prior model
+  	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >)  = 0;
+  	
   
 };
 
@@ -40,6 +43,7 @@ class GaussianMeasurementError : public MeasurementError{
 		void initFromList(Rcpp::List const &);
 		void sampleV(const int i, const Eigen::VectorXd& res) {};
 		Rcpp::List toList();
+		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
 
 };
 
@@ -63,6 +67,7 @@ class NIGMeasurementError : public MeasurementError{
 		void initFromList(Rcpp::List const &);
 		void sampleV(const int , const Eigen::VectorXd& );
 		Rcpp::List toList();
+		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
 
 };
 

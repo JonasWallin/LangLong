@@ -25,6 +25,8 @@ void GaussianMeasurementError::initFromList(Rcpp::List const &init_list)
 {
   if(init_list.containsElementNamed("sigma"))
     sigma = Rcpp::as < double >( init_list["sigma"]);
+  else
+    sigma = 1.;
 }
 
 void GaussianMeasurementError::gradient(const int i, 
@@ -51,4 +53,14 @@ void GaussianMeasurementError::step_theta(double stepsize)
   counter = 0;
   dsigma  = 0;
   ddsigma = 0;
+}
+
+
+std::vector< Eigen::VectorXd > GaussianMeasurementError::simulate(std::vector< Eigen::VectorXd > Y)
+{
+	std::vector< Eigen::VectorXd > residual( Y.size());
+	for(int i = 0; i < Y.size(); i++)
+		residual[i] =  sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y[i].size()) ));
+    
+	return(residual);
 }

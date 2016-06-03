@@ -1,0 +1,14 @@
+
+PKG_CPPFLAGS = -I../inst/include
+PKG_CXXFLAGS = -DDEBUG  -std=c++11
+
+
+OBJECTS = RcppExports.o test_MatrixAlgebra.o solver_tests.o ../inst/src/MatrixAlgebra.o ../inst/src/solver.o 
+$(SHLIB): $(OBJECTS) 
+
+clean: subclean
+	@-rm -f *.o 
+
+
+
+.PHONY: clean subclean

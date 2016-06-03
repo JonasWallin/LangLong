@@ -49,7 +49,6 @@ List simulateLongV_cpp(List obs_list, List operator_list, List theta_list)
 // [[Rcpp::export]]
 List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
 {
-  
   /*
     CREATING THE OPERATOR AND SOLVER
   */
@@ -64,6 +63,9 @@ List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
   Eigen::VectorXd kappa = Rcpp::as<Eigen::VectorXd>(theta_list["kappa"]);
   Kobj->vec_to_theta(kappa.log()); 
   Eigen::VectorXd h      = Rcpp::as<Eigen::VectorXd>(operator_list["h"]);
+  
+  
+  
   /*
     Simulation object
   */
@@ -92,6 +94,7 @@ List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
   int sigma_rinter   = 0;
   if(RandomInter)
     sigma_rinter   = Rcpp::as<double>(theta_list["sigma_r"]); 
+    
   //
   List out;
   List out_Y(obs_list.length());
@@ -102,6 +105,7 @@ List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
   Eigen::VectorXd beta      = Rcpp::as<Eigen::VectorXd>(theta_list["beta"]);
   
   Eigen::VectorXd V,iV;
+  
   for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
      List obs_tmp = Rcpp::as<Rcpp::List>(*it);
       
@@ -111,10 +115,12 @@ List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
       iV.array() = V.array().inverse();
     } else {
       V = h;
+      iV.resize(V.size());
       iV.array() = h.array().inverse();
     }
     for(int i =0; i < Kobj->d; i++)
       z[i] =   normal(random_engine);
+      
       
     Eigen::SparseMatrix<double,0,int> Q = Eigen::SparseMatrix<double,0,int>(Kobj->Q.transpose());
     Q = Q  * iV.asDiagonal();
@@ -127,13 +133,15 @@ List simulateLongGH_cpp(List obs_list, List operator_list, List theta_list)
     Eigen::MatrixXd B  = Rcpp::as<Eigen::MatrixXd >(obs_tmp["B"]);
     Eigen::VectorXd Y = A*X;
     Y += B * beta;
+    
     if(RandomInter)
       Y.array() += sigma_rinter*normal(random_engine);
       
     for(int i =0; i < Y.size(); i++)
       Y[i] += normal(random_engine) * sigma_eps;
-    
-    out_X[counter]   = X;
+      
+      
+	out_X[counter]   = X;
     out_V[counter]   = V;
     out_Y[counter++] = Y;
   }

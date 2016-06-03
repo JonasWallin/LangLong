@@ -1,14 +1,16 @@
 library(INLA)
-
+library(GHmixedeffect)
 #' Estimating longitudal model
 #'
+#' @param Y list of observations
 #' @param locs list of location of observations
-#' @param theta list with covariates mu, kappa, sigma_eps, tau
+#' @param theta list with  kappa, tau
+#' @param stepsize length to step in gradient dir
 #' @param n discretization size
-#' @param Niter - max number of iterations
-#' @param burnin
+#' @param Niter  - max number of iterations
+#' @param burnin - sampling prior to stating calculating the gradient
 #' @param long.percentage percentage of longitudinal samples to use in each iteration.
-#' @param nsim
+#' @param nsim - how many samples to calculate the gradient
 #' @param B list of matrix with covariates
 #' @param noise - either Normal, Generalized assymetric Laplace, or Normal inverse Gaussian
 #' @param silent - print redsults
@@ -20,26 +22,26 @@ library(INLA)
 #' 
 #' 
 estimateLongGH <- function(Y, 
-                           B, 
                            loc, 
+                           Bfixed       = NULL, 
+                           Brandom      = NULL,
                            theta = NULL, 
-                           stepsize = 1e-4, 
+                           stepsize = 1e-2, 
                            n = 100, 
                            Niter = 100, 
                            burnin = 10,
                            long.percentage = 100,
-                           commonsigma = TRUE,
+                           commonsigma = TRUE, # only implimented right know
                            nsim = 1, 
                            noise  = c("Normal","NIG","GAL"),
                            mNoise = c("Normal", "NIG"),
+                           mNoiseList = NULL,
                            silent=FALSE,
                            V = NULL,
                            mixedEffect = FALSE,
                            mixedType   = c("Normal", "NIG"),
-                           Bmixed      = NULL,
                            mixedEffectList = NULL,
-                           operatorType = "Matern",
-                           U = NULL
+                           operatorType = "Matern"
                            )
 {
   noise <- match.arg(noise)
@@ -48,12 +50,15 @@ estimateLongGH <- function(Y,
   mNoise    <- match.arg(mNoise)
   if(missing(Y))
     stop("Must supply data")
-
-  if(missing(B))
-    stop("Must supply list with covariates")
   
   if(missing(loc))
     stop("Must supply list with locations")
+  
+  if(is.null(mNoiseList))
+    mNoiseList     <- MeasurementErrorInit(Y, mNoise)
+  
+  if(is.null(mixedEffectList))
+    mixedEffectList <- MixedInit(mixedType, B_fixed = Bfixed, B_random = Brandom)
   
   operator_List <- create_operator(locs, n, name = operatorType)
   mesh1d <- operator_List$mesh1d
@@ -61,7 +66,7 @@ estimateLongGH <- function(Y,
   obs_ <- list()
   for(i in 1:length(locs))
   {
-    obs_[[i]] <- list(A = inla.mesh.1d.A(mesh1d, locs[[i]]), B = B[[i]],Y=Y[[i]], locs = locs[[i]])
+    obs_[[i]] <- list(A = inla.mesh.1d.A(mesh1d, locs[[i]]), Y=Y[[i]], locs = locs[[i]])
   }
   Nlong = length(locs)
   Nlong = max(min(round(long.percentage*Nlong/100),Nlong),1)
@@ -81,67 +86,33 @@ estimateLongGH <- function(Y,
     }
         
   }
-  if(is.null(U))
-    U <- as.vector(rep(0,length(locs)))
-  if(is.null(theta))
-    theta <- list(tau = as.matrix(0) , 
-                  sigma = 0, 
-                  asigma = 0,
-                  bsigma = 0,
-                  beta = as.matrix(rep(0, dim(B[[1]])[2] )),
-                  kappa = 0,
-                  lambda = 10,
-                  mu     = 0,
-                  sigma_r = 0)
   
-  if(is.null(mixedEffectList) ==FALSE){
-    mixedEffect_list <- mixedEffectList
-    mixedEffect_list$on =TRUE
-  }else{
-    mixedEffect_list <- list(on = mixedEffect)
-    if(mixedEffect == TRUE & is.null(Bmixed) == TRUE)
-    {
-      mixedEffect_list$B = B 
-    }else{
-      mixedEffect_list$B = Bmixed
-    }
-    if(mixedEffect == TRUE)
-    {
-      if(is.null(theta$Sigma) == TRUE){
-        mixedEffect_list$Sigma = diag(dim(mixedEffect_list$B[[1]])[2])
-      }else{mixedEffect_list$Sigma = theta$Sigma}
-    }
-  }
-  if(noise == "Normal"){
-    noise.i = -1
-  } else if(noise=="GAL") {
-    noise.i = 1
-  } else {
-    noise.i = 0
-  }
+  result$mixedEffect_list <- mixedEffectList
+  result$mNoise_list      <- mNoiseList
+    
+  result$obs_list            <- obs_
+  result$operator_list   <- operator_list
   
-  theta <- estimateLongGH_cpp(obs_, 
-                              operator_List, 
-                              theta, 
-                              mixedEffect_list, 
-                              stepsize, 
-                              Niter, 
-                              nsim, 
-                              burnin, 
-                              noise.i,
-                              commonsigma, 
-                              silent, 
-                              V, 
-                              U,
-                              Nlong)
+  result$stepsize <- stepsize
+  result$Niter    <- Niter
+  result$nsim     <- nsim
+  result$Nlong    <- Nlong
+  result$nsim     <- nsim
+  result$burnin   <- burnin
+  result$silent   <- silent
+  result$processes_list <- list()
+  result$processes_list$noise <- noise
+  result$processes_list$tau   <- 1.
+  result$processes_list$kappa <- 1.
+  if(noise == 'NIG')
+  {
+    result$processes_list$tau <- 10.
+    result$processes_list$mu  <- 0.
+  }
+  result$processes_list$V_list     <- V
+  
+  output <- estimateLong_cpp(result)
 
-  output              <- list(theta = theta, 
-                              noise = noise, 
-                              commonsigma = commonsigma,
-                              mixedEffectList = theta$mixedeffect)
-  output$mixedEffectList$on = mixedEffect
-  output$obs_          <- obs_
-  output$operator_List <- operator_List
   return(output)
 }
 

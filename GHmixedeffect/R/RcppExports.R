@@ -5,6 +5,14 @@ sample_Nccpp <- function(b, Q) {
     .Call('GHmixedeffect_sample_Nccpp', PACKAGE = 'GHmixedeffect', b, Q)
 }
 
+simulateNoise <- function(input) {
+    .Call('GHmixedeffect_simulateNoise', PACKAGE = 'GHmixedeffect', input)
+}
+
+simulateMixed <- function(input) {
+    .Call('GHmixedeffect_simulateMixed', PACKAGE = 'GHmixedeffect', input)
+}
+
 estimateME <- function(input) {
     .Call('GHmixedeffect_estimateME', PACKAGE = 'GHmixedeffect', input)
 }

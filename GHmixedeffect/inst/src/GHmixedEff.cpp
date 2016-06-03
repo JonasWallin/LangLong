@@ -120,6 +120,21 @@ void NIGMixedEffect::sampleV(const int i)
         V(i) = rgig.sample(p, a_GIG, b);
 }
 
+
+void NIGMixedEffect::simulate()
+{
+	if(Br.size() == 0)
+      return;
+
+    double p  = -0.5;
+	Eigen::VectorXd b; b.setZero(Br.size());
+	for(int i = 0; i < U.cols(); i++) {
+		V(i)     =   rgig.sample(p, nu, nu);
+		U.col(i) =   sample_Nc(b, invSigma/V(i));
+		U.col(i) += -mu + mu * V(i);
+	} 
+}
+
 void NIGMixedEffect::sampleU(const int i, 
                                 const Eigen::VectorXd& res,
                                 const double log_sigma2_noise)

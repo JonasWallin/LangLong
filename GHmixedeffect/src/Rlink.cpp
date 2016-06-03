@@ -14,6 +14,61 @@ Eigen::VectorXd sample_Nccpp(Eigen::VectorXd b, Eigen::MatrixXd Q) {
 }
 
 
+
+/*
+  Program for simulating from prior distribution of the of noise
+*/
+// [[Rcpp::export]]
+Rcpp::List simulateNoise(Rcpp::List input)
+{
+  
+  Rcpp::List Y_list = input["Y"];
+  std::vector< Eigen::VectorXd > Y_in;
+  Y_in.resize(Y_list.length());
+  int i= 0 ;
+  for( Rcpp::List::iterator it = Y_list.begin(); it != Y_list.end(); ++it ) {
+    Y_in[i++] = Rcpp::as < Eigen::VectorXd >( it[0]);
+  }
+  
+  
+  MeasurementError *errObj;
+  std::string noise = Rcpp::as <std::string> (input["noise"]);
+  if(noise == "Normal")
+    errObj = new GaussianMeasurementError;
+  else
+    errObj = new NIGMeasurementError; 
+    
+  errObj->initFromList(input);
+  std::vector< Eigen::VectorXd > Y = errObj->simulate( Y_in);
+  
+  Rcpp::List output;
+  output["Y"]    = Y;
+  delete errObj;
+  return(output);
+}
+/*
+  Program for simulating from prior distribution of the mixedeffect
+*/
+// [[Rcpp::export]]
+Rcpp::List simulateMixed(Rcpp::List input)
+{
+  MixedEffect *mixobj;
+  std::string noise = Rcpp::as <std::string> (input["noise"]);
+  if(noise == "Normal")
+    mixobj = new NormalMixedEffect;
+  else
+    mixobj = new NIGMixedEffect;
+    
+  mixobj->initFromList(input);
+  mixobj->simulate();
+  
+  Rcpp::List output;
+  output["U"]    = mixobj->U;
+  output["beta_random"] = mixobj->beta_random;
+  delete mixobj;
+  return(output);
+}
+
 // [[Rcpp::export]]
 Rcpp::List estimateME(Rcpp::List input)
 {

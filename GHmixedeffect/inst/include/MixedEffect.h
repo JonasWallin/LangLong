@@ -41,6 +41,11 @@ class MixedEffect {
     					   const double,
     					   const double) = 0;
     virtual void step_theta(double stepsize) = 0;
+    /*
+    	simulates from the prior distribution
+    
+    */
+    virtual void simulate() = 0;
   
   
 };
@@ -96,6 +101,7 @@ class NormalMixedEffect  : public MixedEffect{
     void step_Sigma(double stepsize);
     void step_beta_fixed(double stepsize);
     void step_beta_random(double stepsize);
+    void simulate();
     
     Rcpp::List toList();
   
@@ -163,6 +169,7 @@ class NIGMixedEffect  : public MixedEffect{
     void step_beta_fixed(double stepsize);
     void step_beta_random(double stepsize);
     Rcpp::List toList();
+    void simulate();
   
   
   
