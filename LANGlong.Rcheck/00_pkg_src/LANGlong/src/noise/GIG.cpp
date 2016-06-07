@@ -39,20 +39,17 @@ double dlambda_V(const double loglambda,
 Eigen::VectorXd sampleV_pre(gig &sampler,
                         const Eigen::VectorXd &h, 
                         const double tau,
-                        const std::string type)
+                        const int GAL)
 {
   Eigen::VectorXd V(h.size());
-  double Vadj = 1e-12;
-  if(type == "NIG"){
-    for(int i = 0; i < h.size(); i++)
-    	V[i] = sampler.sample(-0.5 , pow(tau, 2), pow(h[i] * tau, 2));
-      
-  }else if(type == "GAL"){
+  double Vadj = 1e-10;
+  if(GAL)
+  {
     for(int i = 0; i < h.size(); i++)
       V[i] = sampler.sample( h[i] * tau , 2, 0) + Vadj; 
-      
   }else{
-  	throw("sampleV_pre type must either be NIG or GAL");
+    for(int i = 0; i < h.size(); i++)
+      V[i] = sampler.sample(-0.5 , 2, pow(h[i] * tau, 2)); 
   }
   
   return(V);

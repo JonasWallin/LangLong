@@ -5,7 +5,6 @@
 #include <Eigen/SparseCore>
 #include <Eigen/SparseCholesky>
 #include <Eigen/OrderingMethods>
-#include <string>
 #include "rgig.h"
 double dlambda_V(const double ,
                  const Eigen::VectorXd &, 
@@ -23,7 +22,7 @@ Eigen::VectorXd sampleV_post(gig &,
 Eigen::VectorXd sampleV_pre(gig &,
                             const Eigen::VectorXd &, 
                             const double,
-                            const std::string);
+                            const int);
 
 
 #endif 

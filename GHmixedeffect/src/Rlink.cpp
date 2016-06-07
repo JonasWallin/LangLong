@@ -201,8 +201,10 @@ Rcpp::List estimateME(Rcpp::List input)
     output["sigma_eps"]     = sigmaVec;
   }
   
-  if(meas_noise == "NIG")
+  if(meas_noise == "NIG"){
   	output["nu_measerror"]     = nuVec_noise;
+  	output["sigma_eps"]     = sigmaVec;
+  }
   delete mixobj;
   delete errObj;
   return(output);

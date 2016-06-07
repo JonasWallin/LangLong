@@ -88,25 +88,20 @@ simulateLongGH <- function(locs,
 # simulate data from the prior model
 # @param Y only used to get size of objects
 simulateLongPrior <- function( Y, 
-                               locs,
-                               mixedEffect_list,
+                               loc,
+                               mixed_list,
                                measurment_list,
                                processes_list,
                                operator_list)
 {
-  obs_list <- list()
+  mesh1d <- operator_List$mesh1d
+  
+  obs_ <- list()
   for(i in 1:length(locs))
-    obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]), 
+    obs_[[i]] <- list(A = inla.mesh.1d.A(operator_List$mesh1d, locs[[i]]), 
                       Y=Y[[i]], 
                       locs = locs[[i]])
   
   
-  input <- list( obs_list = obs_list,
-                 operator_list = operator_list,
-                 measurment_list = measurment_list,
-                 mixedEffect_list = mixedEffect_list,
-                 processes_list = processes_list) 
-  
-  output <- simulateLongGH_cpp(input)
-  return(output)
+  input <- list( obs_list = obs_list,  operator_list = operator_list) 
 }

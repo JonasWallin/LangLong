@@ -38,17 +38,8 @@ void sampleX( Eigen::VectorXd & X,
 // [[Rcpp::export]]
 List estimateLong_cpp(Rcpp::List in_list)
 {
-
-	
 	//**********************************
-	//      basic parameter
-	//**********************************
-	
-	int nSubsample = Rcpp::as< double > (in_list["nSubsample"]);
-	int nIter      = Rcpp::as< double > (in_list["nIter"]);
-	
-	//**********************************
-	//     setting up the main data
+	//setting up the main data
 	//**********************************
 	Rcpp::List obs_list  = Rcpp::as<Rcpp::List> (in_list["obs_list"]);
 	int nindv = obs_list.length(); //count number of patients  
@@ -147,57 +138,6 @@ List estimateLong_cpp(Rcpp::List in_list)
   	for (i=0; i< nindv; i++) longInd.push_back(i);
   
   
-  	for(int iter=0;iter< Niter + burnin;iter++){
-    	
-    	if(silent == 0)
-      		Rcpp::Rcout << "i = " << iter << ": ";
-      		
-      	// subsampling
-    	//sample Nlong values without replacement from 1:nrep
-    	std::random_shuffle(longInd.begin(), longInd.end());
-    
-    	for(int ilong = 0; ilong < Nlong; ilong++ ) {
-      		i = longInd[ilong];
-      		A = As[i];
-      		Eigen::VectorXd  Y = Ys[i];	
-      		Eigen::VectorXd  res = Y;
-      		
-      		//***************************************
-      		// building the residuals
-      		//***************************************
-      		// removing fixed effect from Y
-      		mixobj->remove_cov(i, res);
-      		
-      		
-      		
-      		//***************************************
-      		// mixobj gradient
-      		//***************************************
-      		if(meas_noise == "Normal"){
-        		mixobj->sampleU( i, res, 2 * log(errObj->sigma));
-        		mixobj->gradient(i, res, 2 * log(errObj->sigma));
-      		}else{
-        		mixobj->sampleU2( i,
-                         		  res, 
-                         		  errObj->Vs[i].cwiseInverse(), 
-                         		  2 * log(errObj->sigma));
-        		mixobj->gradient2(i,
-        						  res,
-                          		  errObj->Vs[i].cwiseInverse(),
-                                  2 * log(errObj->sigma),
-                                  errObj->EiV);
-      		}
-      		mixobj->remove_inter(i, res);
-      		
-      		
-      		//***************************************
-      		// measurent error  gradient
-      		//***************************************
-     		if(meas_noise == "NIG")
-      			errObj->sampleV(i, res);
-      		errObj->gradient(i, res);
-    	}
-    }
  
   return(in_list);
 }
