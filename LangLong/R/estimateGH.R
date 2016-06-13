@@ -1,5 +1,42 @@
 library(INLA)
 library(GHmixedeffect)
+
+estimateLong <- function(Y, 
+                         locs,
+                         mixedEffect_list,
+                         measurment_list,
+                         processes_list,
+                         operator_list,
+                         pSubsample = 1.,
+                         nIter = 10,     # iterations to run the stochastic gradient
+                         nSim  = 1,
+                         nBurnin = 10,   # steps before starting gradient estimation
+                         silent  = FALSE # print iteration info
+                         )
+{
+  obs_list <- list()
+  for(i in 1:length(locs))
+    obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]), 
+                          Y=Y[[i]], 
+                          locs = locs[[i]])
+  
+  input <- list( obs_list         = obs_list,
+                 operator_list    = operator_list,
+                 measurementError_list  = measurment_list,
+                 mixedEffect_list = mixedEffect_list,
+                 processes_list   = processes_list,
+                 pSubsample       = pSubsample,
+                 nIter            = nIter,     # iterations to run the stochastic gradient
+                 nSim             = nSim,
+                 nBurnin          = nBurnin,   # steps before starting gradient estimation
+                 silent           = silent # print iteration info)
+              )
+  
+  output <- estimateLong_cpp(input)
+  return(output)
+}
+
+
 #' Estimating longitudal model
 #'
 #' @param Y list of observations

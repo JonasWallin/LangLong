@@ -5,10 +5,6 @@ estimateLong_cpp <- function(in_list) {
     .Call('LANGlong_estimateLong_cpp', PACKAGE = 'LANGlong', in_list)
 }
 
-samplePosteriorGH <- function(obs_list, operator_list, theta_list, mixed_list, V_list, nsim, noise, commonsigma) {
-    .Call('LANGlong_samplePosteriorGH', PACKAGE = 'LANGlong', obs_list, operator_list, theta_list, mixed_list, V_list, nsim, noise, commonsigma)
-}
-
 simulateLong_cpp <- function(obs_, operator_, theta_) {
     .Call('LANGlong_simulateLong_cpp', PACKAGE = 'LANGlong', obs_, operator_, theta_)
 }

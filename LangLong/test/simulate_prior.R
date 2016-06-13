@@ -24,7 +24,7 @@ mixedEffect_list  <- list(B_random = B_random,
                     B_fixed  = B_fixed,
                     beta_random = as.matrix(c(2,-1)), 
                     beta_fixed  = as.matrix(c(1.)), 
-                    Sigma = diag(0.1, 0.2), 
+                    Sigma = diag(c(0.1, 0.2)), 
                     noise = "Normal")
 
 operator_list <- create_operator(locs, n, name = "Matern")

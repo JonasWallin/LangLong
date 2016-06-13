@@ -12,41 +12,6 @@
 using namespace Rcpp;
 
 
-List simulateLongV_cpp(List obs_list, List operator_list, List theta_list)
-{
-  /*
-    CREATING THE OPERATOR AND SOLVER
-  */
-  std::string type_operator = Rcpp::as<std::string>(operator_list["type"]); 
-  Qmatrix* Kobj;   
-  //Kobj = new MaternMatrixOperator;
-  operator_select(type_operator, &Kobj);
-  Kobj->initFromList(operator_list, List::create(Rcpp::Named("use.chol") = 1));
-  cholesky_solver Solver;
-  Solver.init(Kobj->d, 0, 0, 0);
-  Eigen::VectorXd kappa = Rcpp::as<Eigen::VectorXd>(theta_list["kappa"]);
-  Kobj->vec_to_theta(kappa.log()); 
-  gig rgig;
-  rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  
-  
-  Eigen::VectorXd h  = Rcpp::as<Eigen::VectorXd>(operator_list["h"]);
-  double lambda      = Rcpp::as<double>(theta_list["lambda"]);
-  int    GAL         = Rcpp::as<double>(theta_list["GAL"]); 
-  //
-  List out;
-  List out_V(obs_list.length());
-  int counter = 0;
-  
-  for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
-     List obs_tmp = Rcpp::as<Rcpp::List>(*it);
-    
-    Eigen::VectorXd V = sampleV_pre(rgig, h, lambda ,"GIG" );
-
-    out_V[counter]   = V;
-  }
-  return(out_V);
-}
 
 /*
 	Simulating from the prior model
@@ -79,8 +44,10 @@ List simulateLongGH_cpp(Rcpp::List in_list)
 	//Kobj = new MaternMatrixOperator;
 	operator_select(type_operator, &Kobj);
 	Kobj->initFromList(operator_list, List::create(Rcpp::Named("use.chol") = 1));
-	Eigen::VectorXd kappa = Rcpp::as<Eigen::VectorXd> ( operator_list["kappa"]);
-  double tau            = Rcpp::as<double>(operator_list["tau"]);
+	Eigen::VectorXd kappa;
+  	if(operator_list.containsElementNamed("kappa"))
+    	kappa = Rcpp::as<Eigen::VectorXd> ( operator_list["kappa"]);
+  	double tau            = Rcpp::as<double>(operator_list["tau"]);
 	Kobj->vec_to_theta( kappa);
 	Eigen::VectorXd h = Rcpp::as<Eigen::VectorXd>( operator_list["h"]);
 	//Prior solver
@@ -148,9 +115,11 @@ List simulateLongGH_cpp(Rcpp::List in_list)
   }
 	std::vector< Eigen::VectorXd >   Vs( nindv);
   std::vector< Eigen::VectorXd > Xs( nindv);
+  std::vector< Eigen::VectorXd > Zs( nindv);
   for(int i = 0; i < nindv; i++ ){ 
     	Xs[i].resize( Kobj->d );
     	Vs[i] = h;
+    	Zs[i].resize(Kobj->d);
   }
   	/*
   	Simulation objects
@@ -197,12 +166,17 @@ List simulateLongGH_cpp(Rcpp::List in_list)
         z[ii] =   sqrt(Vs[i][ii]) * normal(random_engine);
         if(type_processes != "Normal")
           z[ii] += - mu * h[ii] + Vs[i][ii] * mu;
-        z[ii] /= sqrt(tau);
+        z[ii];
       }
       
+      Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
+      	K *= sqrt(tau);
+        
+      Eigen::SparseLU< Eigen::SparseMatrix<double,0,int> > chol(K);  // performs a Cholesky factorization of A
       
-      Eigen::SimplicialCholesky< Eigen::SparseMatrix<double> > chol(Kobj->Q);  // performs a Cholesky factorization of A
+      
       Xs[i] = chol.solve(z);         // use the factorization to solve for the given right hand side
+      Zs[i] = z;
       Ysim[i] += As[i] * Xs[i];
   }
     
@@ -211,9 +185,15 @@ List simulateLongGH_cpp(Rcpp::List in_list)
   out_list["Y"]    = Ysim;
   out_list["U"]    = mixobj->U;
   out_list["X"]    = Xs;
-  out_list["K"]    = Kobj->Q;
+  out_list["Z"]    = Zs;
+  Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
+      	K *= sqrt(tau);
+  out_list["K"]    = K;
   if(type_processes != "Normal")
     out_list["V"] = Vs;
+  
+  if(errObj->noise != "Normal")
+    out_list["V_noise"] = errObj->Vs;
   return(out_list);
 
 }

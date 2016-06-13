@@ -17,24 +17,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// samplePosteriorGH
-List samplePosteriorGH(List obs_list, List operator_list, List theta_list, List mixed_list, List V_list, int nsim, int noise, int commonsigma);
-RcppExport SEXP LANGlong_samplePosteriorGH(SEXP obs_listSEXP, SEXP operator_listSEXP, SEXP theta_listSEXP, SEXP mixed_listSEXP, SEXP V_listSEXP, SEXP nsimSEXP, SEXP noiseSEXP, SEXP commonsigmaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< List >::type obs_list(obs_listSEXP);
-    Rcpp::traits::input_parameter< List >::type operator_list(operator_listSEXP);
-    Rcpp::traits::input_parameter< List >::type theta_list(theta_listSEXP);
-    Rcpp::traits::input_parameter< List >::type mixed_list(mixed_listSEXP);
-    Rcpp::traits::input_parameter< List >::type V_list(V_listSEXP);
-    Rcpp::traits::input_parameter< int >::type nsim(nsimSEXP);
-    Rcpp::traits::input_parameter< int >::type noise(noiseSEXP);
-    Rcpp::traits::input_parameter< int >::type commonsigma(commonsigmaSEXP);
-    __result = Rcpp::wrap(samplePosteriorGH(obs_list, operator_list, theta_list, mixed_list, V_list, nsim, noise, commonsigma));
-    return __result;
-END_RCPP
-}
 // simulateLong_cpp
 List simulateLong_cpp(List obs_, List operator_, List theta_);
 RcppExport SEXP LANGlong_simulateLong_cpp(SEXP obs_SEXP, SEXP operator_SEXP, SEXP theta_SEXP) {

@@ -1,13 +1,16 @@
 #include <Rcpp.h>
+#include <RcppEigen.h>
 #include <random>
 #include <chrono>
 #include <vector>
 #include <string>
+#include <math.h>
 #include "Qmatrix.h"
 #include "operator_helper.h"
 #include "solver.h"
 #include "GIG.h"
 #include "MixedEffect.h"
+#include "measError.h"
 using namespace Rcpp;
 
 
@@ -20,19 +23,54 @@ double estDigamma(double x)
 
 void sampleX( Eigen::VectorXd & X, 
               Eigen::VectorXd & Z,
-              const Eigen::VectorXd & V,
+              const Eigen::VectorXd & iV,
+              const double mu,
               const Eigen::VectorXd & Y,
               const Eigen::SparseMatrix<double,0,int> & Q,
+              const Eigen::SparseMatrix<double,0,int> & K,
               const Eigen::SparseMatrix<double,0,int> & A,
-              const double sigma2,
+              const double sigma,
+              const Eigen::VectorXd & h,
               cholesky_solver       & solver)
 {
-  
+  double sigma2  =pow(sigma, 2);
   Eigen::SparseMatrix<double,0,int> Qi = Q + (A.transpose()*A)/ sigma2;
   solver.compute(Qi);
   Eigen::VectorXd b = A.transpose()*Y/ sigma2;
+  Eigen::VectorXd temp  =  - h;
+  temp *= iV;
+  temp.array() += 1.;
+  temp *= mu;
+  b +=  K.transpose() * temp;
   X = solver.rMVN(b, Z);
 }
+void sampleX2( Eigen::VectorXd & X, 
+              Eigen::VectorXd & Z,
+              const Eigen::VectorXd & iV,
+              const Eigen::VectorXd & iV_noise,
+              const double mu,
+              const Eigen::VectorXd & Y,
+              const Eigen::SparseMatrix<double,0,int> & Q,
+              const Eigen::SparseMatrix<double,0,int> & K,
+              const Eigen::SparseMatrix<double,0,int> & A,
+              const double sigma,
+              const Eigen::VectorXd & h,
+              cholesky_solver       & solver)
+{
+  double sigma2  =pow(sigma, 2);
+  Eigen::SparseMatrix<double,0,int> Qi = Q + (A.transpose()*iV_noise.asDiagonal()*A)/ sigma2;
+  
+
+  solver.compute(Qi);
+  Eigen::VectorXd b = A.transpose()* (iV_noise.cwiseProduct(Y) )/ sigma2;
+  Eigen::VectorXd temp  =  - h;
+  temp *= iV;
+  temp.array() += 1.;
+  temp *= mu;
+  b +=  K.transpose() * temp;
+  X = solver.rMVN(b, Z);
+}
+
 
 
 // [[Rcpp::export]]
@@ -44,25 +82,27 @@ List estimateLong_cpp(Rcpp::List in_list)
 	//      basic parameter
 	//**********************************
 	
-	int nSubsample = Rcpp::as< double > (in_list["nSubsample"]);
+	double pSubsample = Rcpp::as< double > (in_list["pSubsample"]);
 	int nIter      = Rcpp::as< double > (in_list["nIter"]);
-	
+	int nSim       = Rcpp::as< double > (in_list["nSim"]);
+  int nBurnin    = Rcpp::as< double > (in_list["nBurnin"] );
+  int silent     = Rcpp::as< int    > (in_list["silent"]);
 	//**********************************
 	//     setting up the main data
 	//**********************************
 	Rcpp::List obs_list  = Rcpp::as<Rcpp::List> (in_list["obs_list"]);
 	int nindv = obs_list.length(); //count number of patients  
+  int nSubsample = ceil(pSubsample * nindv);
 	std::vector< Eigen::SparseMatrix<double,0,int> > As( nindv);
 	std::vector< Eigen::VectorXd > Ys( nindv);
-	int i;
-	i = 0;
+	int count;
+	count = 0;
 	for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
     	List obs_tmp = Rcpp::as<Rcpp::List>(*it);
-    	As[i] = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(obs_tmp["A"]);
-    	Ys[i] = Rcpp::as<Eigen::VectorXd>(obs_tmp["Y"]);
+    	As[count] = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(obs_tmp["A"]);
+    	Ys[count] = Rcpp::as<Eigen::VectorXd>(obs_tmp["Y"]);
+      count++;
     }
-
-
 
 	//**********************************
 	//operator setup
@@ -73,7 +113,19 @@ List estimateLong_cpp(Rcpp::List in_list)
 	//Kobj = new MaternMatrixOperator;
 	operator_select(type_operator, &Kobj);
 	Kobj->initFromList(operator_list, List::create(Rcpp::Named("use.chol") = 1));
-	Eigen::VectorXd kappa = Rcpp::as<Eigen::VectorXd> ( in_list["kappa"]);
+	Eigen::VectorXd kappa;
+  if(operator_list.containsElementNamed("kappa"))
+    kappa = Rcpp::as<Eigen::VectorXd> ( operator_list["kappa"]);
+  Eigen::VectorXd dkappa;
+  dkappa.setZero(kappa.size());
+  double tau            = Rcpp::as< double > ( operator_list["tau"]);
+  double dtau       = 0;
+  double ddtau      = 0;
+  Eigen::VectorXd  tauVec;
+  Eigen::MatrixXd kappaVec;
+  if(kappa.size() > 0)
+    kappaVec.resize(nIter, kappa.size());
+  tauVec.resize(nIter,1);
 	Kobj->vec_to_theta( kappa);
 	Eigen::VectorXd h = Rcpp::as<Eigen::VectorXd>( operator_list["h"]);
 
@@ -87,18 +139,17 @@ List estimateLong_cpp(Rcpp::List in_list)
 	std::vector<  cholesky_solver >  Solver( nindv);
 	Eigen::SparseMatrix<double, 0, int> Q;
 	
-	i = 0;
+	count = 0;
 	for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
     	List obs_tmp = Rcpp::as<Rcpp::List>( *it);
-    	Solver[i].init(Kobj->d, 0, 0, 0);
+    	Solver[count].init(Kobj->d, 0, 0, 0);
     	Q = Eigen::SparseMatrix<double,0,int>(Kobj->Q.transpose());
     	Q = Q  * Kobj->Q;
-    	Q = Q + As[i].transpose()*As[i];
-    	Solver[i].analyze(Q);
-    	Solver[i].compute(Q);
-    	i++;
+    	Q = Q + As[count].transpose()*As[count];
+    	Solver[count].analyze(Q);
+    	Solver[count].compute(Q);
+    	count++;
   }	
-
 	//**********************************
 	// mixed effect setup
 	//*********************************** 
@@ -111,18 +162,58 @@ List estimateLong_cpp(Rcpp::List in_list)
 		mixobj   = new NIGMixedEffect;
 	
 	mixobj->initFromList(mixedEffect_list);
-		
+	
+  	Eigen::MatrixXd muVec_mixed;
+  	Eigen::MatrixXd betarVec_mixed;
+  	Eigen::MatrixXd betafVec_mixed;
+  	Eigen::VectorXd nuVec_mixed;
+  	Eigen::MatrixXd SigmaVec_mixed;
+  	if(mixobj->Br.size() > 0){
+    	if(type_mixedEffect == "NIG"){
+      		muVec_mixed.resize(nIter, mixobj->Br[0].cols());
+      		nuVec_mixed.resize(nIter);
+    	}
+      	betarVec_mixed.resize(nIter, mixobj->Br[0].cols());
+      	SigmaVec_mixed.resize(nIter, mixobj->Br[0].cols() * mixobj->Br[0].cols());
+    }
+  	if(mixobj->Bf.size() > 0)
+    	betafVec_mixed.resize(nIter, mixobj->Bf[0].cols());
+  
+  
+  
+  //**********************************
+	// measurement setup
+	//*********************************** 
+  MeasurementError *errObj;
+  Rcpp::List measurementError_list  = Rcpp::as<Rcpp::List> (in_list["measurementError_list"]);
+  std::string type_MeasurementError= Rcpp::as <std::string> (measurementError_list["noise"]);
+  if(type_MeasurementError == "Normal")
+    errObj = new GaussianMeasurementError;
+  else
+    errObj = new NIGMeasurementError; 
+    
+  errObj->initFromList(measurementError_list);
+  
+  
+  
+  
   
 	//**********************************
 	// stochastic processes setup
 	//*********************************** 
 	Rcpp::List processes_list   = Rcpp::as<Rcpp::List>  (in_list["processes_list"]);
-	Rcpp::List V_list           = Rcpp::as<Rcpp::List>  (processes_list["V_list"]);
-	std::string type_processes = Rcpp::as<std::string> (processes_list["noise"]);
+	Rcpp::List V_list           = Rcpp::as<Rcpp::List>  (processes_list["V"]);
+  Rcpp::List X_list           = Rcpp::as<Rcpp::List>  (processes_list["X"]);
+	std::string type_processes  = Rcpp::as<std::string> (processes_list["noise"]);
+	double nu                   = Rcpp::as< double > (processes_list["nu"]);
+  double mu                   = 0;
+  if (type_processes != "Normal")
+    mu = Rcpp::as< double > (processes_list["mu"]);
 	std::vector< Eigen::VectorXd >   Vs( nindv);
   	std::vector< Eigen::VectorXd > Xs( nindv);
-  	for( i = 0; i < nindv; i++ ){ 
-    	Xs[i].resize( Kobj->d );
+  	for(int i = 0; i < nindv; i++ ){ 
+      
+    	Xs[i] = Rcpp::as<Eigen::VectorXd>( X_list[i]);
     	if(type_processes == "Normal")
     		Vs[i] = h;
     	else
@@ -144,259 +235,289 @@ List estimateLong_cpp(Rcpp::List in_list)
   	b.setZero(Kobj->d);
   	
   	std::vector<int> longInd;
-  	for (i=0; i< nindv; i++) longInd.push_back(i);
+  	for (int i=0; i< nindv; i++) longInd.push_back(i);
   
   
-  	for(int iter=0;iter< Niter + burnin;iter++){
-    	
-    	if(silent == 0)
-      		Rcpp::Rcout << "i = " << iter << ": ";
+    
+  
+  
+  	for(int iter=0; iter < nIter + nBurnin; iter++){
+    	/*
+        printing output
+      
+      */
+    	if(silent == 0){
+      		Rcpp::Rcout << "i = " << iter << ": \n";
+          if(mixobj->Br.size() > 0)
+            Rcpp::Rcout << "mixObj->beta_r = " << mixobj->beta_random.transpose() << "\n";
+          
+          if(mixobj->Bf.size() > 0)
+            Rcpp::Rcout << "mixObj->beta_f = " << mixobj->beta_fixed.transpose() << "\n";
+            
+          if(mixobj->Br.size() > 0)
+            Rcpp::Rcout << "mixObj->Sigma = \n" << mixobj->Sigma << "\n"; 
+            
+            
+            Rcpp::Rcout << "errObj->sigma = " << errObj->sigma << "\n"; 
+            
+            
+          if(type_MeasurementError != "Normal")
+            Rcpp::Rcout << "errObj->nu = " << ((NIGMeasurementError*) errObj)->nu << "\n";  
+            
+          Rcpp::Rcout << "tau = " << tau << "\n"; 
+          if(kappa.size() > 0 )
+            Rcpp::Rcout << "kappa = " << kappa[0] << "\n"; 
+    	}
+      func_dkappa0(type_operator, dkappa, nSim, nSubsample, *Kobj);
       		
+      		
+      	Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
+      	K *= sqrt(tau);
+        
       	// subsampling
     	//sample Nlong values without replacement from 1:nrep
     	std::random_shuffle(longInd.begin(), longInd.end());
     
-    	for(int ilong = 0; ilong < Nlong; ilong++ ) {
-      		i = longInd[ilong];
-      		A = As[i];
+    	for(int ilong = 0; ilong < nSubsample; ilong++ ) {
+      		int i = longInd[ilong];
+          
+      		Eigen::SparseMatrix<double,0,int> A = As[i];
       		Eigen::VectorXd  Y = Ys[i];	
-      		Eigen::VectorXd  res = Y;
-      		
-      		//***************************************
-      		// building the residuals
-      		//***************************************
-      		// removing fixed effect from Y
-      		mixobj->remove_cov(i, res);
       		
       		
+      		for(int ii = 0; ii < nSim; ii ++){
       		
-      		//***************************************
-      		// mixobj gradient
-      		//***************************************
-      		if(meas_noise == "Normal"){
-        		mixobj->sampleU( i, res, 2 * log(errObj->sigma));
-        		mixobj->gradient(i, res, 2 * log(errObj->sigma));
-      		}else{
-        		mixobj->sampleU2( i,
-                         		  res, 
-                         		  errObj->Vs[i].cwiseInverse(), 
-                         		  2 * log(errObj->sigma));
-        		mixobj->gradient2(i,
-        						  res,
-                          		  errObj->Vs[i].cwiseInverse(),
-                                  2 * log(errObj->sigma),
-                                  errObj->EiV);
-      		}
-      		mixobj->remove_inter(i, res);
-      		
-      		
-      		//***************************************
-      		// measurent error  gradient
-      		//***************************************
-     		if(meas_noise == "NIG")
-      			errObj->sampleV(i, res);
-      		errObj->gradient(i, res);
-    	}
-    }
- 
-  return(in_list);
-}
+      			Eigen::VectorXd  res = Y;
+      			//***************************************
+      			//***************************************
+      			//   building the residuals and sampling
+      			//***************************************
+      			//***************************************
+      			
+      			// removing fixed effect from Y
+      			mixobj->remove_cov(i, res);
+      			
+      			res -= A * Xs[i]; 
+      			//***********************************
+      			// mixobj sampling
+      			//***********************************
+      			
+            
+      			if(type_MeasurementError == "Normal")
+      				mixobj->sampleU( i, res, 2 * log(errObj->sigma));
+      			else
+      				mixobj->sampleU2( i,
+                	         		  res, 
+                    	     		  errObj->Vs[i].cwiseInverse(), 
+                    	     		  2 * log(errObj->sigma));
+                                 
+            mixobj->remove_inter(i, res);
+            
+      
 
-// [[Rcpp::export]]
-List samplePosteriorGH(List obs_list, 
-                        List operator_list, 
-                        List theta_list,
-                        List mixed_list,
-                        List V_list,
-                        int nsim, 
-                        int noise,
-                        int commonsigma)
-{
-  int GAL = 0;
-  if(noise == 1)
-    GAL = 1; 
-
-  //count number of patients  
-  int nrep = obs_list.length();
-  Eigen::VectorXd kappa = Rcpp::as<Eigen::VectorXd> (theta_list["kappa"]);
-  double tau = log(Rcpp::as< double> (theta_list["tau"]));
-  Eigen::VectorXd  beta = Rcpp::as<Eigen::VectorXd>( theta_list["beta"]);
-  double sigma = 0;
-  Eigen::VectorXd sigma_v;
-  if(commonsigma == 1){
-    sigma  = 2 * log(Rcpp::as<double> (theta_list["sigma"]));  
-  } else {
-    sigma_v = Rcpp::as<Eigen::VectorXd>( theta_list["sigma"]);
-    sigma_v.array() = 2 * sigma_v.array().log();
-  }
-  
-  double asigma, bsigma;
-  if(commonsigma == 0 ){
-    asigma = theta_list["asigma"];  
-    bsigma  = theta_list["bsigma"];
-  }
-  
-  double lambda = log(Rcpp::as< double> (theta_list["lambda"]));
-  double mu = theta_list["mu"];
-  int    usingMixedEff = Rcpp::as<double>(mixed_list["on"]);
-  NormalMixedEffect mixobj;
-  if(usingMixedEff)
-    mixobj.initFromList(mixed_list);
-  
-  //Define operator
-  std::string type_operator = Rcpp::as<std::string>(operator_list["type"]); 
-  Qmatrix* Kobj;   
-  operator_select(type_operator, &Kobj);
-  Kobj->initFromList(operator_list, List::create(Rcpp::Named("use.chol") = 1));
-  Kobj->vec_to_theta( kappa);
-  Eigen::VectorXd h = Rcpp::as<Eigen::VectorXd>(operator_list["h"]);
-    
-  //Prior solver
-  cholesky_solver Qsolver;
-  Qsolver.init(Kobj->d, 0, 0, 0);
-  Qsolver.analyze(Kobj->Q);
-  Qsolver.compute(Kobj->Q);
-  
-  
-  //Create solvers for each patient
-  std::vector<  cholesky_solver >  Solver(nrep);
-  int i = 0;
-  Eigen::SparseMatrix<double,0,int> Q;
-  std::vector< Eigen::SparseMatrix<double,0,int> > As(nrep);
-  std::vector< Eigen::VectorXd > Ys(nrep);
-  std::vector< Eigen::MatrixXd > Bs(nrep);
-  std::vector< Eigen::VectorXd > Xs(nrep);
-  for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
-    List obs_tmp = Rcpp::as<Rcpp::List>(*it);
-    As[i] = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(obs_tmp["A"]);
-    Ys[i] = Rcpp::as<Eigen::VectorXd>(obs_tmp["Y"]);
-    Bs[i] = Rcpp::as<Eigen::MatrixXd>(obs_tmp["B"]);
-    Xs[i].resize( Kobj->d );
-    Solver[i].init(Kobj->d, 0, 0, 0);
-    Q = Eigen::SparseMatrix<double,0,int>(Kobj->Q.transpose());
-    Q = Q  * Kobj->Q;
-    Q = Q + As[i].transpose()*As[i];
-    Solver[i].analyze(Q);
-    Solver[i].compute(Q);
-    i++;
-  }
-  
-  std::vector< Eigen::VectorXd > Vs(nrep);
-  for( i = 0; i < V_list.length(); i++ ) 
-      Vs[i] = Rcpp::as<Eigen::VectorXd>(V_list[i]);
-  /*
-  Simulation object
-  */
-  std::mt19937 random_engine;
-  std::normal_distribution<double> normal;
-  random_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count()); 
-  gig rgig;
-  rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  
-  Eigen::VectorXd  z;
-  z.setZero(Kobj->d);
-  
-  Eigen::VectorXd b, Ysim;
-  b.setZero(Kobj->d);
-  
-  std::default_random_engine gammagenerator;
-  
-  Eigen::SparseMatrix<double,0,int> Qi;
- 
-  
-  Eigen::MatrixXd B;
-  Eigen::SparseMatrix<double,0,int> A;
-  
- 
-  //Update operator
-  Kobj->vec_to_theta( kappa);
-  Qsolver.compute(Kobj->Q);
-  std::vector< Eigen::MatrixXd > V_out(nrep), X_out(nrep);
-  std::vector<Eigen::MatrixXd > U_out(nrep) ;  
-  std::vector<Eigen::MatrixXd > sigma_out(nrep) ;  
-    
-  for( int i = 0; i < nrep; i++ ) {
-    Rcpp::Rcout << "*";
-    U_out[i].setZero(nsim, mixobj.U.rows());
-    sigma_out[i].setZero(nsim,1);
-    A = As[i];
-    B  = Bs[i];
-    Eigen::VectorXd Y = Ys[i];
-    //compute mean
-    Y -= B * beta;
+      			//***********************************
+      			// sampling processes
+      			//***********************************
+      			
+      			Eigen::SparseMatrix<double,0,int> Q = Eigen::SparseMatrix<double,0,int>(K.transpose());
+      			Eigen::VectorXd iV(Vs[i].size());
+      			iV.array() = Vs[i].array().inverse();
+      			Q =  Q * iV.asDiagonal();
+      			Q =  Q * K;   	
+      			
+        		
+        		for(int j =0; j < Kobj->d; j++)
+          			z[j] =  normal(random_engine);
       
-    Q = Eigen::SparseMatrix<double,0,int>(Kobj->Q.transpose());
-    Eigen::VectorXd iV(Vs[i].size());
-    iV.array() = Vs[i].array().inverse();
       
-    Q = Q  * iV.asDiagonal();
-    Q = exp(tau)*Q  * Kobj->Q;   
-    V_out[i].setZero(nsim, Kobj->d);
-    X_out[i].setZero(nsim, Kobj->d);
-  
-    if(usingMixedEff)
-      mixobj.remove_inter(i, Y);
-          
-    if(commonsigma==0)
-        sigma = sigma_v[i];
-          
-    for(int ii = 0; ii < nsim; ii ++){
-      //Sample X|Y, V
-        
-      for(int j =0; j < Kobj->d; j++)
-        z[j] =  normal(random_engine);
-      
-      sampleX(Xs[i], 
-              z,
-              Vs[i],
-              Y,
-              Q,
-              A,
-              exp(sigma),
-              Solver[i]);
+      			res += A * Xs[i]; 
+      			//Sample X|Y, V, sigma
+            
+            if(type_MeasurementError == "Normal")
+      			  sampleX(Xs[i], 
+                		z,
+                		iV,
+                    mu,
+                		res,
+                		Q,
+                    K,
+                		A,
+                		errObj->sigma,
+                    h,
+                		Solver[i]);    
+            else
+              sampleX2( Xs[i], 
+                  	z,
+                		iV,
+                    errObj->Vs[i].cwiseInverse(),
+                    mu,
+                		res,
+                		Q,
+                    K,
+                		A,
+                		errObj->sigma,
+                    h,
+                		Solver[i]);   
+            res -= A * Xs[i];
+            
+            if(res.cwiseAbs().sum() > 1e16){
+              throw("res outof bound\n");
+            }
+            
+                // sample V| X
+        		if(type_processes != "Normal"){
+          			Vs[i] =   sampleV_post(rgig,
+                               			   h, 
+                               			   K * Xs[i],
+                               			   1.,
+                               			   mu,
+                               			   nu,
+                              			   type_processes); 
+                                       
+        		}
+           //***********************************
+           // random variance noise sampling
+      		 //***********************************
+     			  if(type_MeasurementError != "Normal"){
+      			  errObj->sampleV(i, res);                           
+     			  }
+      			//***************************************
+      			//  computing gradients
+      			//***************************************
+      		  if(iter >= nBurnin){
+             
+      			  //***************************************
+      			  // mixobj gradient
+      			  //***************************************
               
-      X_out[i].row(ii) = Xs[i];     
-      // sample V| X
-      if(noise>=0){ 
-        Vs[i] =   sampleV_post(rgig,
-                             h, 
-                             Kobj->Q*Xs[i],
-                             exp(- 0.5 * tau),
-                             mu,
-                             exp(lambda),
-                            GAL);
-      }                      
-      V_out[i].row(ii) = Vs[i]; 
-      Q = Eigen::SparseMatrix<double,0,int>(Kobj->Q.transpose());
-      iV.array() = Vs[i].array().inverse();
-      Q = Q  * iV.asDiagonal();
-      Q =  exp(tau)* Q  * Kobj->Q;   
+      			  mixobj->add_inter(i, res);
+      			  if(type_MeasurementError != "Normal")
+        			  mixobj->gradient2(i,
+        				  			          res,
+                          	  		errObj->Vs[i].cwiseInverse(),
+                              	  2 * log(errObj->sigma),
+                                  errObj->EiV);
+              else
+                mixobj->gradient(i, res, 2 * log(errObj->sigma));
+      		    
+      			  mixobj->remove_inter(i, res);
+      		
+      		
+      			  //***************************************
+      			  // measurent error  gradient
+      			  //***************************************
+      			  errObj->gradient(i, res);
+              
+              
+        		  //***************************************
+      			  // stoch processes gradient
+      			  //***************************************
+              dtau  +=  0.5 * Kobj->d / tau;
+              Eigen::VectorXd vtmp = Xs[i].transpose()*Q;
+              double xtQx =  vtmp.dot(Xs[i]); 
+              dtau  -= 0.5 * xtQx / tau;
+              ddtau -=  0.5 * Kobj->d / pow(tau, 2); 
+              
+              func_dkappa(type_operator,
+                    dkappa, 
+                    Xs[i],
+                    iV, 
+                    *Kobj,
+                    log(tau));
+              
+      		  }  
+      		}
+      		
+      		
+		  	
       
-      if(usingMixedEff)
-      {
-          mixobj.add_inter(i, Y);
-          mixobj.sampleU(i, Y - A * Xs[i], sigma);
-          mixobj.remove_inter(i, Y);
-          U_out[i].row(ii) = mixobj.U.col(i);
-          //U_out(i, ii) = U[i];
-      }
-      Ysim = Y - A * Xs[i];
-      // sample sigma | U,V,X  
-      if(commonsigma==0){
-        double alphai = exp(asigma) + Ysim.size()/2.0;
-        double betai = exp(bsigma) + 0.5* Ysim.array().square().sum();
-        std::gamma_distribution<double> distribution(alphai,1.0/betai);
-        sigma = -log(distribution(gammagenerator)); 
-        sigma_out[i](ii,1) = exp(0.5*sigma);
-      }
+    	}
+      //**********************************
+  	  	//  gradient step
+		  	//*********************************** 
+        if(iter >= nBurnin){
+          mixobj->step_theta(0.33);
+          errObj->step_theta(0.33);
+          double tau_temp  =  -1;
+          double step  =0.33;
+          dtau  /= ddtau;
+          while(tau_temp < 0)
+          {
+            dtau *=step;
+            tau_temp = tau - dtau;
+          }
+          tau    = tau_temp;
+          dtau   = 0;
+          ddtau  = 0;
+          
+          if(kappa.size() > 0){
+            dkappa[0]  /= (-nSim * nSubsample * Kobj->d);
+            kappa[0] -= dkappa[0];
+          }
+          if(isnan(errObj->sigma))
+            throw("NaN for sigma encountered");
+        }
+        //**********************************
+  	  	// storing the parameter traces
+		    //*********************************** 
+      
+        if(iter >= nBurnin)
+        {
+         
+           if(mixobj->Br.size() > 0){
+              if(type_mixedEffect != "Normal"){
+                muVec_mixed.row(iter - nBurnin) = ((NIGMixedEffect*) mixobj)->mu;
+                nuVec_mixed(iter - nBurnin)     = ((NIGMixedEffect*) mixobj)->nu;
+      		    }
+              betarVec_mixed.row(iter - nBurnin) = mixobj->beta_random;
+              
+          SigmaVec_mixed.row(iter - nBurnin) = Eigen::Map<Eigen::VectorXd>(mixobj->Sigma.data(), 
+        														mixobj->Br.size()*mixobj->Br.size());
+                                    
+              
+          }
+    	    if(mixobj->Bf.size() > 0)
+    		    betafVec_mixed.row(iter - nBurnin) = mixobj->beta_fixed;
+        
+          if(kappa.size() > 0)
+            kappaVec.row(iter - nBurnin) = kappa;
+        
+          tauVec(iter - nBurnin) =  tau;
+        }
     }
+    
+  // storing the results  
+  Rcpp::List out_list;
+  out_list["pSubsample"]       = pSubsample;
+  out_list["nIter"]            = nIter;
+  out_list["nSim"]             = nSim;
+  out_list["nBurnin"]          = nBurnin;
+  out_list["silent"]           = silent;
+  out_list["obs_list"]         = obs_list;
+  out_list["Xs"]               = Xs;
+  out_list["Vs"]               = Vs;
+  out_list["tauVec"]               = tauVec;
+  if(kappa.size() > 0)
+    out_list["kappaVec"] = kappaVec;
+  
+  
+  Rcpp::List mixobj_list       = mixobj->toList();
+  if(mixobj->Br.size() > 0){
+    if(type_mixedEffect != "Normal"){
+      mixobj_list["muVec"]    = muVec_mixed;
+      mixobj_list["nuVec"]    = nuVec_mixed;
+    }
+      mixobj_list["betarVec"] = betarVec_mixed;
+      mixobj_list["SigmaVec"] = SigmaVec_mixed;
   }
-  Rcpp::Rcout << "\n";
-  Rcpp::List list;
-  list["X"] = X_out;
-  list["V"]  = V_out;
-  list["U"]  = U_out;
-  list["sigma"]  = sigma_out;
-  delete Kobj;
-  return(list);
+  
+  if(mixobj->Bf.size() > 0)
+    	mixobj_list["betafVec"] = betafVec_mixed;	  
+  
+  
+  out_list["mixedEffect_list"] = mixobj_list;
+  
+  Rcpp::List errobj_list           = errObj->toList();
+  out_list["measurementError_list"] = errobj_list;
+  return(out_list);
 }

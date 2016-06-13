@@ -20,6 +20,14 @@ Eigen::VectorXd sampleV_post(gig &,
                         const double,
                         const int);
 
+                 
+Eigen::VectorXd sampleV_post(gig &,
+                        const Eigen::VectorXd &, 
+                        const Eigen::VectorXd &,
+                        const double,
+                        const double,
+                        const double,
+                        const std::string);
 Eigen::VectorXd sampleV_pre(gig &,
                             const Eigen::VectorXd &, 
                             const double,

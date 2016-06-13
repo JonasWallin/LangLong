@@ -60,28 +60,34 @@ Eigen::VectorXd sampleV_pre(gig &sampler,
 
 
 Eigen::VectorXd sampleV_post(gig &sampler,
-                        const Eigen::VectorXd &h, 
-                        const Eigen::VectorXd &KX,
-                        const double sigma,
-                        const double mu,
-                        const double tau,
-                        const int GAL)
+                        	 const Eigen::VectorXd &h, 
+                        	 const Eigen::VectorXd &KX,
+                        	 const double sigma,
+                        	 const double mu,
+                        	 const double nu,
+                        	 const std::string type)
 {
   Eigen::VectorXd  p, b;
-  double Vadj = 1e-10;
-  b = KX / sigma;
+  
+  b = (KX + mu * h) / sigma;
   b = b.array().square();
-  double a  =  pow(mu / sigma, 2)  + 2.;
-  if(GAL){
-    p = h * tau;
+  double a  =  pow(mu / sigma, 2);
+  if(type == "GAL"){
+    p = h * nu;
+    a += 2.;
     p.array() -= 0.5;
-  }else{
+  }else if(type == "NIG"){
     p.setOnes(h.size());
     p *= -1.;
-    b.array() += (h * tau).array().square();
+    a += pow(nu, 2);
+    b.array() += (h * nu).array().square();
+  }else{
+  	throw("sampleV_pre type must either be NIG or GAL");
   }
+  
   Eigen::VectorXd V(KX.size());
   double b_adj = 1e-14;
+  double Vadj  = 1e-14;
   for(int i = 0; i < KX.size(); i++)
       V[i] = sampler.sample( p[i], a, b[i] + b_adj) + Vadj; 
   
