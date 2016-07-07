@@ -50,6 +50,12 @@ class Qmatrix {
     virtual Eigen::VectorXd solve(Eigen::VectorXd &b, Eigen::VectorXd &Guess) {return(Qsolver->solve(b, Guess));};
     virtual void update(){};
     virtual void update_param(){};
+    
+    virtual void gradient( const Eigen::VectorXd &, const Eigen::VectorXd & ){};
+    virtual void step_theta(const double ){};
+    
+    
+    double tau;
 };
 
 class constMatrix : public Qmatrix{
@@ -57,6 +63,12 @@ class constMatrix : public Qmatrix{
     Eigen::SparseMatrix<double,0,int> m;
     Eigen::VectorXd v;
   public:
+  
+	void gradient(const Eigen::VectorXd &, const Eigen::VectorXd & );
+  
+	void step_theta(const double);
+  	double  dtau;
+  	double ddtau;
     void initFromList(Rcpp::List const &);
     Eigen::SparseMatrix<double,0,int> df(int){return m;};
     Eigen::SparseMatrix<double,0,int> d2f(int,int){return m;};
@@ -84,16 +96,22 @@ class MaternMatrixOperator : public Qmatrix{
     Eigen::DiagonalMatrix<double,Dynamic> Kappa;
     Eigen::MatrixXd H;
     bool use_chol;
+    double counter;
     int calc_det;
     SparseMatrix<double,0,int> * Phik, * Mk;
     VectorXd phi2;
+    double dtau;
+  	double ddtau;
+    
 
   Eigen::VectorXd kappa_vec(Eigen::MatrixXd & B, Eigen::VectorXd & beta);
   Eigen::MatrixXd dkappa_mat(Eigen::MatrixXd & B, Eigen::VectorXd & beta); 
 
   public:
-    int n;
-    MaternMatrixOperator(){};
+  
+  	double tau;
+  	int n;
+    MaternMatrixOperator(){ counter = 0;};
     void initFromList(Rcpp::List const &);
     void initFromList(Rcpp::List const &, Rcpp::List const &);
     Eigen::SparseMatrix<double,0,int> df(int);
@@ -107,6 +125,9 @@ class MaternMatrixOperator : public Qmatrix{
     Rcpp::List output_list();
     void show_results();
     double logdet();
+    
+    void gradient( const Eigen::VectorXd &, const Eigen::VectorXd & );
+    void step_theta(const double );
 };
 
 

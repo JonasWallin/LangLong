@@ -1,6 +1,7 @@
 #include "Qmatrix.h"
 #include "error_check.h"
 #include "eigen_add_on.h"
+#include "operator_helper.h"
 
 void MaternMatrixOperator::initFromList(Rcpp::List const & init_list, Rcpp::List const & solver_list)
 {
@@ -25,7 +26,7 @@ void MaternMatrixOperator::initFromList(Rcpp::List const & init_list, Rcpp::List
   kappa.resize(Bkp.rows());
   kappa = kappa_vec(Bkp,kpv);
   Q = G + kappa.asDiagonal()*C;
-  
+  dkappa.setZero(Bkp.rows());
   npars = nkp;
 
   theta = kpv;
@@ -225,4 +226,45 @@ Eigen::MatrixXd MaternMatrixOperator::dkappa_mat(Eigen::MatrixXd & B, Eigen::Vec
   Eigen::VectorXd G = kappa_vec(B, beta); 
   Eigen::MatrixXd temp = G.asDiagonal() * B ;
   return(temp);
+}
+
+void MaternMatrixOperator::gradient( const Eigen::VectorXd & X, const Eigen::VectorXd & iV)
+{
+	counter++;
+  Eigen::VectorXd vtmp = Q * X;
+  
+  double xtQx =  vtmp.dot(iV.asDiagonal() * vtmp); 
+  dtau  	  +=  0.5 * d / tau;
+  dtau        -=  0.5 * xtQx;
+  ddtau       -=  0.5 * d / pow(tau, 2); 
+  
+  func_dkappa("matern",
+             dkappa, 
+             X,
+             iV, 
+             *this,
+             log(tau));
+  
+}
+void MaternMatrixOperator::step_theta(const double stepsize)
+{
+
+	dtau  /= ddtau;
+  dtau *= stepsize;
+	double tau_temp = -1.;
+    while(tau_temp < 0)
+    {
+    	dtau *= 0.5;
+        tau_temp = tau - dtau;
+    }
+	tau = tau_temp;
+	dtau   = 0;
+	ddtau  = 0;
+   	if(kappa.size() > 0){
+    	dkappa[0]  /= (-counter * d);
+        kappa[0] -= dkappa[0];
+    }
+   
+    dkappa.setZero(Bkp.rows());
+    counter = 0;
 }

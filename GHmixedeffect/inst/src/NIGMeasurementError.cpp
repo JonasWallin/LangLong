@@ -62,6 +62,7 @@ std::vector< Eigen::VectorXd > NIGMeasurementError::simulate(std::vector< Eigen:
 		for(int ii = 0; ii < residual[i].size(); ii++)
 		{
 			double V = rgig.sample(-0.5, nu, nu);
+			Vs[i][ii] = V;
 			residual[i][ii] *=  sqrt(V);
 		}
 		

@@ -19,6 +19,7 @@ Rcpp::List NIGMixedEffect::toList()
   out["nu"]     = nu;
   out["mu"]     = mu;
   out["noise"]       = noise;
+  out["Sigma_epsilon"]       = Sigma_epsilon;
   return(out);
 }
 void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
@@ -106,6 +107,10 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
     a_GIG += nu;
     rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
       
+    Sigma_epsilon = 0;
+  	if(init_list.containsElementNamed("Sigma_epsilon"))
+  		Sigma_epsilon  =1;  
+      
   }else{ Br.resize(0);}
 }
 
@@ -150,6 +155,11 @@ void NIGMixedEffect::sampleU(const int i,
     Q += Qp;
     U.col(i) = sample_Nc(b, Q);
     sampleV(i);
+    if(Sigma_epsilon){
+      Eigen::VectorXd Z = Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( U.col(i).size()) );
+      Z.array() *= beta_random.array().abs() * 1e-4 + 1e-14;
+      U.col(i) += Z;
+    }
 }
 
 void NIGMixedEffect::sampleU2(const int i, 
@@ -168,6 +178,11 @@ void NIGMixedEffect::sampleU2(const int i,
     Q += Qp;
     U.col(i) = sample_Nc(b, Q);
     sampleV(i);
+    if(Sigma_epsilon){
+      Eigen::VectorXd Z = Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( U.col(i).size()) );
+      Z.array() *= beta_random.array().abs() * 1e-4 + 1e-14;
+      U.col(i) += Z;
+    }
 }
 
 

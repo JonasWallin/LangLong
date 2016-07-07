@@ -14,6 +14,7 @@ class MixedEffect {
   
   public:
     Eigen::MatrixXd Sigma;
+    int Sigma_epsilon;  // added for epsilon of normal noise to U to ensure Sigma pos def 
     std::string noise;
     Eigen::MatrixXd U;
     std::vector< Eigen::MatrixXd > Bf; // fixed covariates

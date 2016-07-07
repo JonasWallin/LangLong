@@ -29,6 +29,7 @@ Rcpp::List NormalMixedEffect::toList()
   out["Sigma"]       = Sigma;
   out["U"]           = U;
   out["noise"]       = noise;
+  out["Sigma_epsilon"]       = Sigma_epsilon;
   return(out);
 }
 void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
@@ -93,6 +94,9 @@ void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
     else
       U.setZero(Br[0].cols(), Br.size());
   }
+  Sigma_epsilon = 0;
+  if(init_list.containsElementNamed("Sigma_epsilon"))
+  	Sigma_epsilon  =1;
   
 }
 
@@ -112,6 +116,11 @@ void NormalMixedEffect::sampleU2(const int i,
     Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * iV.asDiagonal() * Br[i];
     Q        +=  invSigma;
     U.col(i) =   sample_Nc(b, Q); 
+    if(Sigma_epsilon){
+      Eigen::VectorXd Z = Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( U.col(i).size()) );
+      Z.array() *= beta_random.array().abs() * 1e-4 + 1e-14;
+      U.col(i) += Z;
+    }
 }
 
 
@@ -138,6 +147,11 @@ void NormalMixedEffect::sampleU(const int i,
     Eigen::MatrixXd Q   = exp( - log_sigma2_noise)  * Br[i].transpose() * Br[i];
     Q        +=  invSigma;
     U.col(i) =   sample_Nc(b, Q); 
+    if(Sigma_epsilon){
+      Eigen::VectorXd Z = Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( U.col(i).size()) );
+      Z.array() *= beta_random.array().abs() * 1e-4 + 1e-14;
+      U.col(i) += Z;
+    }
 }
 
 void NormalMixedEffect::gradient2(const int i, 

@@ -118,9 +118,7 @@ List estimateLong_cpp(Rcpp::List in_list)
     kappa = Rcpp::as<Eigen::VectorXd> ( operator_list["kappa"]);
   Eigen::VectorXd dkappa;
   dkappa.setZero(kappa.size());
-  double tau            = Rcpp::as< double > ( operator_list["tau"]);
-  double dtau       = 0;
-  double ddtau      = 0;
+  
   Eigen::VectorXd  tauVec;
   Eigen::MatrixXd kappaVec;
   if(kappa.size() > 0)
@@ -264,7 +262,7 @@ List estimateLong_cpp(Rcpp::List in_list)
           if(type_MeasurementError != "Normal")
             Rcpp::Rcout << "errObj->nu = " << ((NIGMeasurementError*) errObj)->nu << "\n";  
             
-          Rcpp::Rcout << "tau = " << tau << "\n"; 
+          Rcpp::Rcout << "tau = " << Kobj->tau << "\n"; 
           if(kappa.size() > 0 )
             Rcpp::Rcout << "kappa = " << kappa[0] << "\n"; 
     	}
@@ -272,7 +270,7 @@ List estimateLong_cpp(Rcpp::List in_list)
       		
       		
       	Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
-      	K *= sqrt(tau);
+      	K *= sqrt(Kobj->tau);
         
       	// subsampling
     	//sample Nlong values without replacement from 1:nrep
@@ -412,18 +410,8 @@ List estimateLong_cpp(Rcpp::List in_list)
         		  //***************************************
       			  // stoch processes gradient
       			  //***************************************
-              dtau  +=  0.5 * Kobj->d / tau;
-              Eigen::VectorXd vtmp = Xs[i].transpose()*Q;
-              double xtQx =  vtmp.dot(Xs[i]); 
-              dtau  -= 0.5 * xtQx / tau;
-              ddtau -=  0.5 * Kobj->d / pow(tau, 2); 
-              
-              func_dkappa(type_operator,
-                    dkappa, 
-                    Xs[i],
-                    iV, 
-                    *Kobj,
-                    log(tau));
+      			  Kobj->gradient( Xs[i],
+      			  			      iV);
               
       		  }  
       		}
@@ -438,22 +426,10 @@ List estimateLong_cpp(Rcpp::List in_list)
         if(iter >= nBurnin){
           mixobj->step_theta(0.33);
           errObj->step_theta(0.33);
-          double tau_temp  =  -1;
-          double step  =0.33;
-          dtau  /= ddtau;
-          while(tau_temp < 0)
-          {
-            dtau *=step;
-            tau_temp = tau - dtau;
-          }
-          tau    = tau_temp;
-          dtau   = 0;
-          ddtau  = 0;
-          
-          if(kappa.size() > 0){
-            dkappa[0]  /= (-nSim * nSubsample * Kobj->d);
-            kappa[0] -= dkappa[0];
-          }
+          //double tau_temp  =  -1;
+          //double step  =0.33;
+          //dtau  /= ddtau;
+          Kobj->step_theta(0.33);
           if(isnan(errObj->sigma))
             throw("NaN for sigma encountered");
         }
@@ -482,7 +458,7 @@ List estimateLong_cpp(Rcpp::List in_list)
           if(kappa.size() > 0)
             kappaVec.row(iter - nBurnin) = kappa;
         
-          tauVec(iter - nBurnin) =  tau;
+          tauVec(iter - nBurnin) =  Kobj->tau;
         }
     }
     

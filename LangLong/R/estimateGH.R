@@ -1,6 +1,30 @@
 library(INLA)
 library(GHmixedeffect)
 
+#' @param mixedEffect_list -     
+#' @param   Y           - list with the observations
+#' @param   Niter       - number of iteration of the stochastic gradient
+#' @param   meas_noise  - the aviable noise classes: Normal or NIG
+#' @param   noise       - the distribution of the mixed effect
+#' @param   B_random    - list for the random effect covariates (needs to be matrix, can be NULL)
+#' @param   B_fixed     - list for the fixed  effect covariates (needs to be matrix, can be NULL) 
+#' @param   beta_random - initial parameters of the random effect (mean parameter) (if not specified set to zero)
+#' @param   beta_fixed  - initial parameters of the fixed  effect (if not specified set to zero)
+#' @param   Sigma       - initial parameters of the covariance of random effect (if not specified set to I )
+#' @param   nu          - shape parameter for noise (NIG only)
+#' @param   mu          - shift parameter for noise (NIG only)
+#' @param   U           - (list) inital guess of the random effect
+#' @param   V           - (list) inital guess of the variance effect
+#' 
+#' @param measurment_list   - list for measurement error:
+#' @param     sigma       - measurement noise variance 
+#' @param     nu          - shape parameter for noise (NIG only)
+#' @param     Vs          - (list) inital guess for the noise of the measurement
+#' @param operator_list   - list created using create_operator function!
+#' @param processes_list  - for the stochastic noise driving the 
+#' @param noise           - either Normal, NIG or GAL (change name to type rather then noise)
+#' @param nu              - shape parameter for NIG or GAL
+#' @param mu              - assymetric parameter for NIG or GAL                   
 estimateLong <- function(Y, 
                          locs,
                          mixedEffect_list,
