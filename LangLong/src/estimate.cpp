@@ -11,6 +11,7 @@
 #include "GIG.h"
 #include "MixedEffect.h"
 #include "measError.h"
+#include "process.h"
 using namespace Rcpp;
 
 
@@ -21,55 +22,7 @@ double estDigamma(double x)
   return(R::digamma(x));
 }
 
-void sampleX( Eigen::VectorXd & X, 
-              Eigen::VectorXd & Z,
-              const Eigen::VectorXd & iV,
-              const double mu,
-              const Eigen::VectorXd & Y,
-              const Eigen::SparseMatrix<double,0,int> & Q,
-              const Eigen::SparseMatrix<double,0,int> & K,
-              const Eigen::SparseMatrix<double,0,int> & A,
-              const double sigma,
-              const Eigen::VectorXd & h,
-              cholesky_solver       & solver)
-{
-  double sigma2  =pow(sigma, 2);
-  Eigen::SparseMatrix<double,0,int> Qi = Q + (A.transpose()*A)/ sigma2;
-  solver.compute(Qi);
-  Eigen::VectorXd b = A.transpose()*Y/ sigma2;
-  Eigen::VectorXd temp  =  - h;
-  temp *= iV;
-  temp.array() += 1.;
-  temp *= mu;
-  b +=  K.transpose() * temp;
-  X = solver.rMVN(b, Z);
-}
-void sampleX2( Eigen::VectorXd & X, 
-              Eigen::VectorXd & Z,
-              const Eigen::VectorXd & iV,
-              const Eigen::VectorXd & iV_noise,
-              const double mu,
-              const Eigen::VectorXd & Y,
-              const Eigen::SparseMatrix<double,0,int> & Q,
-              const Eigen::SparseMatrix<double,0,int> & K,
-              const Eigen::SparseMatrix<double,0,int> & A,
-              const double sigma,
-              const Eigen::VectorXd & h,
-              cholesky_solver       & solver)
-{
-  double sigma2  =pow(sigma, 2);
-  Eigen::SparseMatrix<double,0,int> Qi = Q + (A.transpose()*iV_noise.asDiagonal()*A)/ sigma2;
-  
 
-  solver.compute(Qi);
-  Eigen::VectorXd b = A.transpose()* (iV_noise.cwiseProduct(Y) )/ sigma2;
-  Eigen::VectorXd temp  =  - h;
-  temp *= iV;
-  temp.array() += 1.;
-  temp *= mu;
-  b +=  K.transpose() * temp;
-  X = solver.rMVN(b, Z);
-}
 
 
 
@@ -87,6 +40,8 @@ List estimateLong_cpp(Rcpp::List in_list)
 	int nSim       = Rcpp::as< double > (in_list["nSim"]);
   int nBurnin    = Rcpp::as< double > (in_list["nBurnin"] );
   int silent     = Rcpp::as< int    > (in_list["silent"]);
+  double alpha     = Rcpp::as< double    > (in_list["alpha"]);
+  double step0     = Rcpp::as< double    > (in_list["step0"]);
 	//**********************************
 	//     setting up the main data
 	//**********************************
@@ -201,22 +156,17 @@ List estimateLong_cpp(Rcpp::List in_list)
 	//*********************************** 
 	Rcpp::List processes_list   = Rcpp::as<Rcpp::List>  (in_list["processes_list"]);
 	Rcpp::List V_list           = Rcpp::as<Rcpp::List>  (processes_list["V"]);
-  Rcpp::List X_list           = Rcpp::as<Rcpp::List>  (processes_list["X"]);
+  
 	std::string type_processes  = Rcpp::as<std::string> (processes_list["noise"]);
-	double nu                   = Rcpp::as< double > (processes_list["nu"]);
-  double mu                   = 0;
-  if (type_processes != "Normal")
-    mu = Rcpp::as< double > (processes_list["mu"]);
-	std::vector< Eigen::VectorXd >   Vs( nindv);
-  	std::vector< Eigen::VectorXd > Xs( nindv);
-  	for(int i = 0; i < nindv; i++ ){ 
-      
-    	Xs[i] = Rcpp::as<Eigen::VectorXd>( X_list[i]);
-    	if(type_processes == "Normal")
-    		Vs[i] = h;
-    	else
-      	Vs[i] = Rcpp::as<Eigen::VectorXd>( V_list[i]);
-  	}
+  
+  
+  Process *process;
+  
+  if (type_processes != "Normal"){
+  	process  = new GHProcess;
+  }else{ process  = new GaussianProcess;}
+  
+  process->initFromList(processes_list, h);
   	/*
   	Simulation objects
   	*/
@@ -295,7 +245,7 @@ List estimateLong_cpp(Rcpp::List in_list)
       			// removing fixed effect from Y
       			mixobj->remove_cov(i, res);
       			
-      			res -= A * Xs[i]; 
+      			res -= A * process->Xs[i]; 
       			//***********************************
       			// mixobj sampling
       			//***********************************
@@ -318,8 +268,8 @@ List estimateLong_cpp(Rcpp::List in_list)
       			//***********************************
       			
       			Eigen::SparseMatrix<double,0,int> Q = Eigen::SparseMatrix<double,0,int>(K.transpose());
-      			Eigen::VectorXd iV(Vs[i].size());
-      			iV.array() = Vs[i].array().inverse();
+      			Eigen::VectorXd iV(process->Vs[i].size());
+      			iV.array() = process->Vs[i].array().inverse();
       			Q =  Q * iV.asDiagonal();
       			Q =  Q * K;   	
       			
@@ -328,51 +278,38 @@ List estimateLong_cpp(Rcpp::List in_list)
           			z[j] =  normal(random_engine);
       
       
-      			res += A * Xs[i]; 
+      			res += A * process->Xs[i]; 
       			//Sample X|Y, V, sigma
             
             if(type_MeasurementError == "Normal")
-      			  sampleX(Xs[i], 
+      			  process->sample_X(i, 
                 		z,
-                		iV,
-                    mu,
                 		res,
                 		Q,
-                    K,
+                    	K,
                 		A,
                 		errObj->sigma,
-                    h,
                 		Solver[i]);    
             else
-              sampleX2( Xs[i], 
-                  	z,
-                		iV,
-                    errObj->Vs[i].cwiseInverse(),
-                    mu,
+              process->sample_Xv2( i, 
+                  		z,
                 		res,
                 		Q,
-                    K,
+                    	K,
                 		A,
                 		errObj->sigma,
-                    h,
-                		Solver[i]);   
-            res -= A * Xs[i];
+                		Solver[i],
+                        errObj->Vs[i].cwiseInverse());   
+            res -= A * process->Xs[i];
             
             if(res.cwiseAbs().sum() > 1e16){
               throw("res outof bound\n");
             }
             
-                // sample V| X
-        		if(type_processes != "Normal"){
-          			Vs[i] =   sampleV_post(rgig,
-                               			   h, 
-                               			   K * Xs[i],
-                               			   1.,
-                               			   mu,
-                               			   nu,
-                              			   type_processes); 
+            // sample V| X
+          	process->sample_V(i, rgig, K);
                                        
-        		}
+        		
            //***********************************
            // random variance noise sampling
       		 //***********************************
@@ -408,10 +345,15 @@ List estimateLong_cpp(Rcpp::List in_list)
               
               
         		  //***************************************
-      			  // stoch processes gradient
+      			  // operator gradient
       			  //***************************************
-      			  Kobj->gradient( Xs[i],
-      			  			      iV);
+      			  Kobj->gradient( process->Xs[i],
+      			  			      process->Vs[i].cwiseInverse());
+      			  
+      			   //***************************************
+      			  // operator gradient
+      			  //***************************************
+      			  process->gradient(i);
               
       		  }  
       		}
@@ -424,18 +366,15 @@ List estimateLong_cpp(Rcpp::List in_list)
   	  	//  gradient step
 		  	//*********************************** 
         if(iter >= nBurnin){
-          mixobj->step_theta(0.33);
-          errObj->step_theta(0.33);
-          //double tau_temp  =  -1;
-          //double step  =0.33;
-          //dtau  /= ddtau;
-          Kobj->step_theta(0.33);
-          if(isnan(errObj->sigma))
-            throw("NaN for sigma encountered");
+        	double stepsize = step0 / pow(iter - nBurnin + 1, alpha);
+          mixobj->step_theta(stepsize);
+          errObj->step_theta(stepsize);
+          Kobj->step_theta(stepsize);
+          process->step_theta(stepsize);
         }
         //**********************************
   	  	// storing the parameter traces
-		    //*********************************** 
+		//*********************************** 
       
         if(iter >= nBurnin)
         {
@@ -469,10 +408,12 @@ List estimateLong_cpp(Rcpp::List in_list)
   out_list["nSim"]             = nSim;
   out_list["nBurnin"]          = nBurnin;
   out_list["silent"]           = silent;
+  out_list["step0"]            = step0;
+  out_list["alpha"]            = alpha;
   out_list["obs_list"]         = obs_list;
-  out_list["Xs"]               = Xs;
-  out_list["Vs"]               = Vs;
-  out_list["tauVec"]               = tauVec;
+  out_list["Xs"]               = process->Xs;
+  out_list["Vs"]               = process->Vs;
+  out_list["tauVec"]           = tauVec;
   if(kappa.size() > 0)
     out_list["kappaVec"] = kappaVec;
   

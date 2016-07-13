@@ -1,9 +1,9 @@
 library(INLA)
 library(GHmixedeffect)
 
-#' @param mixedEffect_list -     
 #' @param   Y           - list with the observations
-#' @param   Niter       - number of iteration of the stochastic gradient
+#' @param   locs        - list with position of the observations (Y)
+#' @param mixedEffect_list -     
 #' @param   meas_noise  - the aviable noise classes: Normal or NIG
 #' @param   noise       - the distribution of the mixed effect
 #' @param   B_random    - list for the random effect covariates (needs to be matrix, can be NULL)
@@ -24,13 +24,22 @@ library(GHmixedeffect)
 #' @param processes_list  - for the stochastic noise driving the 
 #' @param noise           - either Normal, NIG or GAL (change name to type rather then noise)
 #' @param nu              - shape parameter for NIG or GAL
-#' @param mu              - assymetric parameter for NIG or GAL                   
+#' @param mu              - assymetric parameter for NIG or GAL     
+#' 
+#' @param step0           - stepsize for optimizer is step0 / i^alpha
+#' @param alpha           - stepsize for optimizer is step0 / i^alpha
+#' @param pSubsample      - precentage of data used in each gradient subsampling
+#' @param nIter           - number of iteration of the stochastic gradient
+#' @param nSim            - number of samples of the gibbs sampler to estimate the gradient
+#' @parma silent          - print iteration info              
 estimateLong <- function(Y, 
                          locs,
                          mixedEffect_list,
                          measurment_list,
                          processes_list,
                          operator_list,
+                         step0 = 0.5,
+                         alpha = 0.1,
                          pSubsample = 1.,
                          nIter = 10,     # iterations to run the stochastic gradient
                          nSim  = 1,
@@ -53,7 +62,9 @@ estimateLong <- function(Y,
                  nIter            = nIter,     # iterations to run the stochastic gradient
                  nSim             = nSim,
                  nBurnin          = nBurnin,   # steps before starting gradient estimation
-                 silent           = silent # print iteration info)
+                 silent           = silent, # print iteration info)
+                 step0            = step0,
+                 alpha            = alpha
               )
   
   output <- estimateLong_cpp(input)

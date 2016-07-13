@@ -102,7 +102,7 @@ class MaternMatrixOperator : public Qmatrix{
     VectorXd phi2;
     double dtau;
   	double ddtau;
-    
+    double trace0;
 
   Eigen::VectorXd kappa_vec(Eigen::MatrixXd & B, Eigen::VectorXd & beta);
   Eigen::MatrixXd dkappa_mat(Eigen::MatrixXd & B, Eigen::VectorXd & beta); 

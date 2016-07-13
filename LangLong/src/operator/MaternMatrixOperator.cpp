@@ -56,7 +56,8 @@ void MaternMatrixOperator::initFromList(Rcpp::List const & init_list, Rcpp::List
 
   Mk = new SparseMatrix<double,0,int>[nkp];
   
-
+  
+  trace0 = this->trace(0);
     
 }
 
@@ -208,6 +209,8 @@ Rcpp::List MaternMatrixOperator::output_list()
     List["B.kappa"]   = Bkp;
     
   List["kappa_transformed"] = 1;
+  
+    List["tau"]     = tau;
 
   return(List);
 }
@@ -237,7 +240,7 @@ void MaternMatrixOperator::gradient( const Eigen::VectorXd & X, const Eigen::Vec
   dtau  	  +=  0.5 * d / tau;
   dtau        -=  0.5 * xtQx;
   ddtau       -=  0.5 * d / pow(tau, 2); 
-  
+  dkappa[0] += trace0;
   func_dkappa("matern",
              dkappa, 
              X,
@@ -250,7 +253,7 @@ void MaternMatrixOperator::step_theta(const double stepsize)
 {
 
 	dtau  /= ddtau;
-  dtau *= stepsize;
+  	dtau *= stepsize;
 	double tau_temp = -1.;
     while(tau_temp < 0)
     {
@@ -264,7 +267,8 @@ void MaternMatrixOperator::step_theta(const double stepsize)
     	dkappa[0]  /= (-counter * d);
         kappa[0] -= dkappa[0];
     }
-   
+   	this->vec_to_theta(kappa);
     dkappa.setZero(Bkp.rows());
     counter = 0;
+    trace0 = this->trace(0);
 }
