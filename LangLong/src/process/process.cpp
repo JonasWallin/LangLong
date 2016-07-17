@@ -12,12 +12,12 @@ void GaussianProcess::initFromList(const Rcpp::List & init_list,const Eigen::Vec
   nindv = X_list.length();
   Xs.resize(nindv);
   Vs.resize(nindv);
-  for(int i = 0; i < nindv; i++ ){ 
-      
+  for(int i = 0; i < nindv; i++ ){
     	Xs[i] = Rcpp::as<Eigen::VectorXd>( X_list[i]);
     	Vs[i] = h;
-      	//Vs[i] = Rcpp::as<Eigen::VectorXd>( V_list[i]);
   	}
+  	
+  
   
 }
 
@@ -40,7 +40,21 @@ void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd
   	
   	mu = Rcpp::as< double > (init_list["mu"]);
   	nu = Rcpp::as< double > (init_list["nu"]);
-  
+  	
+  	type_process = Rcpp::as<std::string> (init_list["noise"]);
+  	dmu  = 0;
+  	dnu  = 0;
+  	
+  	if(type_process == "NIG")
+  	{
+  		EV = h;
+  		EiV=  h.cwiseInverse();
+  		EiV.array() *= (1. + 1./nu);
+  	}
+  	
+  	counter = 0;
+  	store_param = 0;
+  	
 }
 
 
@@ -139,4 +153,109 @@ void GHProcess::sample_V(const int i ,
                  nu, 
                  "NIG"); 
 
+}
+
+
+void GHProcess::gradient( const int i ,
+			   			  const Eigen::SparseMatrix<double,0,int> & K)
+{ 
+	
+  	counter++;
+	
+	iV = Vs[i].cwiseInverse();
+	Eigen::VectorXd temp_1  =  - h;
+  	temp_1 *= iV;
+  	temp_1.array() += 1.;
+	Eigen::VectorXd temp_2;
+	temp_2 = K * Xs[i];
+	temp_2 -= (-h + Vs[i]) * mu;
+	dmu += temp_1.dot(temp_2);
+	
+	
+	// dnu
+	if(type_process == "NIG"){
+		dnu  += 0.5 * ( iV.size() / nu + 2 * iV.size() -   (Vs[i].array().sum() + iV.array().sum()) );
+    	ddnu += - iV.size()/( nu * nu);
+    }
+};
+
+void GHProcess::step_theta(const double stepsize)
+{
+	step_mu(stepsize);	
+	//step_nu(stepsize);
+	counter = 0;
+	
+	if(store_param)
+	{
+		mu_vec[vec_counter] = mu; 
+		nu_vec[vec_counter] = nu;
+		vec_counter++;
+	}
+}
+
+void GHProcess::step_mu(const double stepsize)
+{
+   Eigen::VectorXd temp;
+   temp.array()  = EV.array().square();
+	double H_mu =  counter * (EV.sum() - EiV.dot(temp));
+	mu += (stepsize / H_mu ) * dmu; 
+	Rcpp::Rcout << "dmu = " << dmu << "\n";
+	dmu = 0;
+	Rcpp::Rcout << "H_mu = " << H_mu << "\n";
+}
+
+void GHProcess::step_nu(const double stepsize)
+{
+  double nu_temp = -1;
+  dnu /= ddnu;
+  double stepsize_temp  = stepsize;
+  while(nu_temp < 0)
+  {
+    nu_temp = nu - stepsize_temp * dnu;
+    stepsize_temp *= 0.5;
+    if(stepsize_temp <= 1e-16)
+        throw("in GHProcess:: can't make nu it positive \n");   
+  }
+  nu = nu_temp;
+  if(type_process == "NIG"){
+  	EiV=  h.cwiseInverse();
+  	EiV.array() *= (1. + 1./nu); 
+  }
+  dnu  = 0;
+  ddnu = 0;
+}
+
+
+void GHProcess::setupStoreTracj(const int Niter)
+{
+
+	mu_vec.resize(Niter);
+	nu_vec.resize(Niter);
+	vec_counter = 0;
+	store_param = 1;
+}
+
+Rcpp::List GHProcess::toList()
+{
+  Rcpp::List out;
+  out["nu"]     = nu;
+  out["mu"]     = mu;
+  out["Xs"]     = Xs;
+  out["Vs"]     = Vs;
+  
+  if(store_param)
+  {
+  	out["mu_vec"]     = mu_vec;
+  	out["nu_vec"]     = nu_vec;
+  }
+  
+  return(out);
+}
+
+Rcpp::List GaussianProcess::toList()
+{
+  Rcpp::List out;
+  out["Xs"]     = Xs;
+  out["Vs"]     = Vs;
+  return(out);
 }

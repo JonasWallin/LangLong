@@ -1,3 +1,5 @@
+library(rGIG)
+
 create_matrices_ <- function(locs, n)
 {
   min_l <- min(locs[[1]])
@@ -23,9 +25,9 @@ create_matrices_ <- function(locs, n)
 #' @param theta lost with covariates mu, kappa, sigma_eps, sigma
 #' @param B list of matrix with covariates
 simulateLong.R <- function(loc, 
-                           B,
                            theta, 
                            n = 100, 
+                           B = NULL,
                            noise = c("Normal","NIG","GAL"),
                            mixedEffect = FALSE,
                            Bmixed      = NULL,
@@ -61,12 +63,14 @@ simulateLong.R <- function(loc,
   
   if(operatorType=="Matern"){
     kappa = theta$kappa
-    K = operator_List$G + kappa*operator_List$C
-    Q = tau*(K%*%operator_List$Ci%*%K)
+    K = sqrt(tau) %*% (operator_List$G + kappa*operator_List$C)
+    Q = (K%*%operator_List$Ci%*%K)
     R = chol(Q)  
   }else{
+    K = sqrt(tau)*operator_List$Q
+    
     Ci = as(sparseMatrix(i=1:n,j=1:n,x=1/operator_List$h,dims=c(n, n)), "CsparseMatrix")
-    Q = tau*(Matrix::t(operator_List$Q)%*%Ci%*%operator_List$Q)
+    Q = Matrix::t(K) %*% Ci %*% K
     R = chol(Q)
   }
   
@@ -79,9 +83,21 @@ simulateLong.R <- function(loc,
   
   Y = list()
   X = list()
+  V = list()
   for(i in 1:nrep){
-    X[[i]] = solve(R,rnorm(dim(R)[1]))
+    if(noise == "Normal"){
+      X[[i]] = solve(R,rnorm(dim(R)[1]))
+    }else if (noise == "NIG"){
+      V[[i]] =  rGIG(rep(-0.5, n), 
+                     rep( theta$nu^2, n), 
+                     (operator_List$h * theta$nu)^2)
+      Z <- (- operator_List$h  + V[[i]]) * theta$mu + sqrt(V[[i]]) * rnorm(n)
+      X[[i]] <- solve(K, Z)
+    }else{
+      print("GAL  NOT IMPLIMENTED YET")
+    }
+      
     Y[[i]] = (B[[i]]%*%beta + A[[i]]%*%X[[i]] + sigma[i]*rnorm(dim(A[[i]])[1]))@x
   }
-  return(list(Y=Y,X=X,xloc = operator_List$mesh1d$loc,A=A)) 
+  return(list(Y=Y, X=X, xloc = operator_List$mesh1d$loc, A=A, V= V)) 
 }

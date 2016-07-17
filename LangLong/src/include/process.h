@@ -15,16 +15,22 @@ class Process {
 
   public:
   
+  	int store_param;
   	int nindv; // number indiviuals 
   	std::vector< Eigen::VectorXd > Xs;
   	std::vector< Eigen::VectorXd >  Vs;
   	Eigen::SparseMatrix<double,0,int>  Q;
   	Eigen::VectorXd  h;
   	Eigen::VectorXd  iV;
+  	std::string type_process;
     Process() {};
-    virtual ~Process(){};
     
-    virtual void gradient( const int i ){};
+    // setups to store the tracjetory
+    virtual void setupStoreTracj(const int Niter){};
+    virtual ~Process(){};
+    virtual Rcpp::List toList() {};
+    virtual void gradient( const int i ,
+    					   const Eigen::SparseMatrix<double,0,int> & K){};
     virtual void step_theta(const double step){};
     virtual void sample_V(const int, 
     					            gig &,
@@ -75,6 +81,8 @@ class GaussianProcess : public Process{
               const double sigma,
               cholesky_solver       & solver,
               const Eigen::VectorXd & iV_noise);
+	
+    Rcpp::List toList();
 };
 
 
@@ -82,7 +90,19 @@ class GaussianProcess : public Process{
 class GHProcess : public Process{
 
 
-
+	private:
+	
+		double dmu ;
+		double dnu, ddnu ;
+		Eigen::VectorXd EV;
+		Eigen::VectorXd EiV;
+		Eigen::VectorXd mu_vec;
+		Eigen::VectorXd nu_vec;
+		int vec_counter;
+		double counter;
+	public:
+	
+	
 	double mu;
 	double nu;
 	void initFromList(const Rcpp::List  &, const Eigen::VectorXd &);
@@ -105,7 +125,14 @@ class GHProcess : public Process{
               const double sigma,
               cholesky_solver       & solver,
               const Eigen::VectorXd & iV_noise);
-	
+
+    void gradient( const int i ,
+    					   const Eigen::SparseMatrix<double,0,int> & K);
+    void step_theta(const double );	
+    void step_mu(const double );	
+    void step_nu(const double );
+    Rcpp::List toList();
+    void setupStoreTracj(const int);
     void sample_V(const int, 
     			  gig &,
                   const Eigen::SparseMatrix<double,0,int> &);

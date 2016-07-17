@@ -21,3 +21,7 @@ simulateLongGH_cpp <- function(in_list) {
     .Call('LANGlong_simulateLongGH_cpp', PACKAGE = 'LANGlong', in_list)
 }
 
+estimateProcess_cpp <- function(in_list) {
+    .Call('LANGlong_estimateProcess_cpp', PACKAGE = 'LANGlong', in_list)
+}
+

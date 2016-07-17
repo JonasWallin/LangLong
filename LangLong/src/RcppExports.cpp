@@ -65,3 +65,14 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// estimateProcess_cpp
+List estimateProcess_cpp(Rcpp::List in_list);
+RcppExport SEXP LANGlong_estimateProcess_cpp(SEXP in_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type in_list(in_listSEXP);
+    __result = Rcpp::wrap(estimateProcess_cpp(in_list));
+    return __result;
+END_RCPP
+}

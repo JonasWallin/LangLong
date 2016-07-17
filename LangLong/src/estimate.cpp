@@ -353,7 +353,7 @@ List estimateLong_cpp(Rcpp::List in_list)
       			   //***************************************
       			  // operator gradient
       			  //***************************************
-      			  process->gradient(i);
+      			  process->gradient(i, K);
               
       		  }  
       		}
@@ -434,7 +434,11 @@ List estimateLong_cpp(Rcpp::List in_list)
   
   out_list["mixedEffect_list"] = mixobj_list;
   
-  Rcpp::List errobj_list           = errObj->toList();
+  Rcpp::List errobj_list            = errObj->toList();
   out_list["measurementError_list"] = errobj_list;
+  
+  
+  Rcpp::List process_list           = process->toList();
+  out_list["processes_list"]        = process_list;
   return(out_list);
 }
