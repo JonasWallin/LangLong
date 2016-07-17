@@ -92,6 +92,8 @@ class GHProcess : public Process{
 
 	private:
 	
+  		Eigen::VectorXd  h2;
+  		double h_sum;
 		double dmu ;
 		double dnu, ddnu ;
 		Eigen::VectorXd EV;

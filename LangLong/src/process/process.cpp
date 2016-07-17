@@ -24,6 +24,8 @@ void GaussianProcess::initFromList(const Rcpp::List & init_list,const Eigen::Vec
 void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd & h_in)
 {
   h = h_in;
+  h2 = h.cwiseProduct(h); 
+  h_sum = h.sum();
   std::vector<std::string> check_names =  {"X","V","mu","nu"};
   check_Rcpplist(init_list, check_names, "GHProcess::initFromList");
   Rcpp::List V_list           = Rcpp::as<Rcpp::List>  (init_list["V"]);
@@ -48,8 +50,9 @@ void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd
   	if(type_process == "NIG")
   	{
   		EV = h;
-  		EiV=  h.cwiseInverse();
-  		EiV.array() *= (1. + 1./nu);
+  		EiV=  h2.cwiseInverse();
+      	EiV *=  1./nu;
+  		EiV += h.cwiseInverse();
   	}
   	
   	counter = 0;
@@ -91,7 +94,7 @@ void GHProcess::sample_X(const int i,
   solver.compute(Qi);
   Eigen::VectorXd b = A.transpose()*Y/ sigma2;
   Eigen::VectorXd temp  =  - h;
-  temp *= iV;
+  temp = temp.cwiseProduct(iV);
   temp.array() += 1.;
   temp *= mu;
   b +=  K.transpose() * temp;
@@ -134,7 +137,7 @@ void GHProcess::sample_Xv2(  const int i,
   solver.compute(Qi);
   Eigen::VectorXd b = A.transpose()* (iV_noise.cwiseProduct(Y) )/ sigma2;
   Eigen::VectorXd temp  =  - h;
-  temp *= iV;
+  temp = temp.cwiseProduct(iV);
   temp.array() += 1.;
   temp *= mu;
   b +=  K.transpose() * temp;
@@ -164,25 +167,30 @@ void GHProcess::gradient( const int i ,
 	
 	iV = Vs[i].cwiseInverse();
 	Eigen::VectorXd temp_1  =  - h;
-  	temp_1 *= iV;
+  	temp_1 = temp_1.cwiseProduct(iV);
+  	
   	temp_1.array() += 1.;
+  	
 	Eigen::VectorXd temp_2;
+	Eigen::VectorXd temp_3 =  Vs[i] ;
+  	temp_3 -= h;
+	temp_3.array() *= mu;
 	temp_2 = K * Xs[i];
-	temp_2 -= (-h + Vs[i]) * mu;
+	temp_2 -= temp_3;
 	dmu += temp_1.dot(temp_2);
-	
+    
 	
 	// dnu
-	if(type_process == "NIG"){
-		dnu  += 0.5 * ( iV.size() / nu + 2 * iV.size() -   (Vs[i].array().sum() + iV.array().sum()) );
-    	ddnu += - iV.size()/( nu * nu);
-    }
+	if(type_process == "NIG")
+		dnu  +=  iV.size() / nu - nu * (h2.dot(iV) + Vs[i].sum() - 2 * h_sum);
+    	
+    
 };
 
 void GHProcess::step_theta(const double stepsize)
 {
 	step_mu(stepsize);	
-	//step_nu(stepsize);
+	step_nu(stepsize);
 	counter = 0;
 	
 	if(store_param)
@@ -195,18 +203,18 @@ void GHProcess::step_theta(const double stepsize)
 
 void GHProcess::step_mu(const double stepsize)
 {
-   Eigen::VectorXd temp;
-   temp.array()  = EV.array().square();
+   Eigen::VectorXd temp = EV;
+   temp.array()  = h2;
 	double H_mu =  counter * (EV.sum() - EiV.dot(temp));
-	mu += (stepsize / H_mu ) * dmu; 
-	Rcpp::Rcout << "dmu = " << dmu << "\n";
+	mu -= (stepsize / H_mu ) * dmu; 
 	dmu = 0;
-	Rcpp::Rcout << "H_mu = " << H_mu << "\n";
 }
 
 void GHProcess::step_nu(const double stepsize)
 {
   double nu_temp = -1;
+  ddnu = - iV.size()/( nu * nu) - (h2.dot(EiV) + EV.sum()) + 2 * h_sum;
+  ddnu *= counter;
   dnu /= ddnu;
   double stepsize_temp  = stepsize;
   while(nu_temp < 0)
@@ -218,8 +226,9 @@ void GHProcess::step_nu(const double stepsize)
   }
   nu = nu_temp;
   if(type_process == "NIG"){
-  	EiV=  h.cwiseInverse();
-  	EiV.array() *= (1. + 1./nu); 
+  	EiV =  h2.cwiseInverse();
+    EiV *=  1./nu;
+  	EiV += h.cwiseInverse();
   }
   dnu  = 0;
   ddnu = 0;

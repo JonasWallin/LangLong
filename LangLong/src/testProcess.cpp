@@ -133,7 +133,7 @@ List estimateProcess_cpp(Rcpp::List in_list)
   	process->setupStoreTracj(nIter);
   	for(int iter=0; iter < nIter + nBurnin; iter++){
 
-      		
+      		Rcpp::Rcout << "iter = " << iter << "\n";
       		
       	Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
       	K *= sqrt(Kobj->tau);
@@ -192,6 +192,7 @@ List estimateProcess_cpp(Rcpp::List in_list)
         if(iter >= nBurnin){
         	double stepsize = step0 / pow(iter - nBurnin + 1, alpha);
           process->step_theta(stepsize);
+          
         }
        
     }

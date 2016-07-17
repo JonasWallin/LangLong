@@ -2,6 +2,7 @@
 #simulate X
 #simulate Y
 #use second order RW
+rm(list=ls())
 library(LANGlong)
 library(INLA)
 library(rGIG)
@@ -9,12 +10,13 @@ library(methods)
 graphics.off()
 npers <- 2
 nobs  <- 100
-nIter <- 1000
+nIter <- 15000
 n     <- 100 #n grid points
 
-mu_guess <- 1
-nu_true <- 200
-mu_true <- 0.1
+nu_true <- 5
+mu_true <- 10
+nu_guess <- 2
+mu_guess <- 0
 theta <- list()
 theta$sigma <- 0.1 # meas error
 theta$tau   <- 0.5
@@ -43,7 +45,8 @@ for(i in 1:length(locs)){
   X[[i]] <- rep(0, n) 
   V[[i]] <- operator_list$h
 }
-processes_list <- list(nu = nu_true, mu = mu_guess, X = output_sim$X, V = output_sim$V, noise = "NIG")
+operator_list$tau <-theta$tau
+processes_list <- list(nu = nu_guess, mu = mu_guess, X = output_sim$X, V = output_sim$V, noise = "NIG")
 input <- list( obs_list         = obs_list,
                operator_list    = operator_list,
                processes_list   = processes_list,
@@ -51,7 +54,7 @@ input <- list( obs_list         = obs_list,
                nSim             = 2,
                nBurnin          = 100,   # steps before starting gradient estimation
                silent           = 0, # print iteration info)
-               step0            = 0.33,
+               step0            = 1,
                alpha            = 0.01,
                sigma            = theta$sigma
               )
@@ -63,3 +66,6 @@ lines(output_sim$xloc, output_sim$X[[5]])
 lines(operator_list$mesh1d$loc, output$Xs[[5]],col='red',lty='dashed')
 plot(output$mu_vec)
 plot(output$nu_vec)
+K = sqrt(theta$tau)*operator_list$Q
+Z = as.vector(K%*%output_sim$X[[1]])
+sum(Z- ( -operator_list$h + output_sim$V[[1]])*-97.7582)
