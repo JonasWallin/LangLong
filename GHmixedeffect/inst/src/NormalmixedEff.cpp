@@ -129,7 +129,7 @@ void NormalMixedEffect::simulate()
 	if(Br.size() == 0)
       return;
 
-	Eigen::VectorXd b; b.setZero(Br.size());
+	Eigen::VectorXd b; b.setZero(U.rows());
 	for(int i = 0; i < U.cols(); i++) 
 		U.col(i) =   sample_Nc(b, invSigma); 
 }

@@ -132,7 +132,7 @@ void NIGMixedEffect::simulate()
       return;
 
     double p  = -0.5;
-	Eigen::VectorXd b; b.setZero(Br.size());
+	Eigen::VectorXd b; b.setZero( U.rows());
 	for(int i = 0; i < U.cols(); i++) {
 		V(i)     =   rgig.sample(p, nu, nu);
 		U.col(i) =   sample_Nc(b, invSigma/V(i));
