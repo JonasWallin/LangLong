@@ -21,7 +21,7 @@ class MeasurementError {
     virtual void step_theta(double stepsize) = 0;
     virtual void initFromList(Rcpp::List const &)=0;
     virtual Rcpp::List toList()=0;
-    virtual void sampleV(const int , const Eigen::VectorXd& ) = 0;
+    virtual void sampleV(const int , const Eigen::VectorXd&, int ) = 0;
     
     // sampling from the prior model
   	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >)  = 0;
@@ -41,7 +41,7 @@ class GaussianMeasurementError : public MeasurementError{
 		void gradient(const int , const Eigen::VectorXd&);
 		void step_theta(double stepsize);
 		void initFromList(Rcpp::List const &);
-		void sampleV(const int i, const Eigen::VectorXd& res) {};
+		void sampleV(const int i, const Eigen::VectorXd& res, int n_s) {};
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
 
@@ -65,7 +65,7 @@ class NIGMeasurementError : public MeasurementError{
 		void step_sigma(double stepsize);
 		void step_nu(double stepsize);
 		void initFromList(Rcpp::List const &);
-		void sampleV(const int , const Eigen::VectorXd& );
+		void sampleV(const int , const Eigen::VectorXd& , int = -1);
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
 

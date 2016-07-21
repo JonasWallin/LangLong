@@ -117,6 +117,8 @@ void NIGMixedEffect::initFromList(Rcpp::List const &init_list)
 
 void NIGMixedEffect::sampleV(const int i)
 {
+	if(Br.size() == 0)
+      return;
   		  //  GIG	(p, a, b)
         double p  = 0.5 * (- 1 - Br[0].cols());
         Eigen::VectorXd U_ = U.col(i) + mu;

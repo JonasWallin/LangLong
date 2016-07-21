@@ -70,10 +70,14 @@ std::vector< Eigen::VectorXd > NIGMeasurementError::simulate(std::vector< Eigen:
 	return(residual);
 }
 
-void NIGMeasurementError::sampleV(const int i, const Eigen::VectorXd& res){
+void NIGMeasurementError::sampleV(const int i, 
+								  const Eigen::VectorXd& res,
+								  int n_s ){
 
-        for(int j = 0; j < Vs[i].size(); j++)
-        	Vs[i][j] = rgig.sample(-1., nu, pow(res[j]/sigma, 2) + nu);
+	if(n_s == -1)
+		n_s = Vs[i].size();
+    for(int j = 0; j < n_s; j++)
+    	Vs[i][j] = rgig.sample(-1., nu, pow(res[j]/sigma, 2) + nu);
 };
 void NIGMeasurementError::gradient(const int i, 
                                  const Eigen::VectorXd& res)

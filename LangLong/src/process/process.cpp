@@ -244,13 +244,19 @@ void GHProcess::setupStoreTracj(const int Niter)
 	store_param = 1;
 }
 
+
+void GHProcess::printIter()
+{
+	Rcpp::Rcout << "(nu, mu) = " << nu << "," << mu << "\n";
+}
+
 Rcpp::List GHProcess::toList()
 {
   Rcpp::List out;
   out["nu"]     = nu;
   out["mu"]     = mu;
-  out["Xs"]     = Xs;
-  out["Vs"]     = Vs;
+  out["X"]      = Xs;
+  out["V"]      = Vs;
   
   if(store_param)
   {
@@ -264,7 +270,7 @@ Rcpp::List GHProcess::toList()
 Rcpp::List GaussianProcess::toList()
 {
   Rcpp::List out;
-  out["Xs"]     = Xs;
-  out["Vs"]     = Vs;
+  out["X"] = Xs;
+  out["V"] = Vs;
   return(out);
 }

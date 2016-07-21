@@ -25,6 +25,9 @@ class Process {
   	std::string type_process;
     Process() {};
     
+    
+	//print iteration data
+    virtual void printIter(){};
     // setups to store the tracjetory
     virtual void setupStoreTracj(const int Niter){};
     virtual ~Process(){};
@@ -133,6 +136,7 @@ class GHProcess : public Process{
     void step_theta(const double );	
     void step_mu(const double );	
     void step_nu(const double );
+    void printIter();
     Rcpp::List toList();
     void setupStoreTracj(const int);
     void sample_V(const int, 

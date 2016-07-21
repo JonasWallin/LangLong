@@ -196,6 +196,10 @@ List estimateLong_cpp(Rcpp::List in_list)
       */
     	if(silent == 0){
       		Rcpp::Rcout << "i = " << iter << ": \n";
+      		
+      		
+      		process->printIter();
+      		
           if(mixobj->Br.size() > 0)
             Rcpp::Rcout << "mixObj->beta_r = " << mixobj->beta_random.transpose() << "\n";
 
@@ -336,7 +340,6 @@ List estimateLong_cpp(Rcpp::List in_list)
                 mixobj->gradient(i, res, 2 * log(errObj->sigma));
 
       			  mixobj->remove_inter(i, res);
-
 
       			  //***************************************
       			  // measurent error  gradient
