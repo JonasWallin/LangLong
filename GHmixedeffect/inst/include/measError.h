@@ -41,7 +41,7 @@ class GaussianMeasurementError : public MeasurementError{
 		void gradient(const int , const Eigen::VectorXd&);
 		void step_theta(double stepsize);
 		void initFromList(Rcpp::List const &);
-		void sampleV(const int i, const Eigen::VectorXd& res, int n_s) {};
+		void sampleV(const int i, const Eigen::VectorXd& res, int n_s = -1) {};
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
 
