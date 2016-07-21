@@ -21,7 +21,7 @@ class MeasurementError {
     virtual void step_theta(double stepsize) = 0;
     virtual void initFromList(Rcpp::List const &)=0;
     virtual Rcpp::List toList()=0;
-    virtual void sampleV(const int , const Eigen::VectorXd&, int ) = 0;
+    virtual void sampleV(const int , const Eigen::VectorXd&, int = -1) = 0;
     
     // sampling from the prior model
   	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >)  = 0;
