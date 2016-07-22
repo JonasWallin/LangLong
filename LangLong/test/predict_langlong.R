@@ -14,7 +14,7 @@ nSim  <- 10
 n.obs  <- 10
 n <- 100
 n.pred <- 100
-pred.type <- "Smoothing"
+pred.type <- "Filter"
 ###
 # setup of objects
 #
@@ -106,6 +106,5 @@ k = 1
 plot(locs[[k]],sim_res$Y[[k]],ylim=c(min(res$X.summary[[k]]$quantiles[[1]]$field),
                                      max(res$X.summary[[k]]$quantiles[[2]]$field)))
 lines(res$locs[[k]],res$X.summary[[k]]$Mean)
-points(res$locs[[k]],res$X.summary[[k]]$Mean)
 lines(res$locs[[k]],res$X.summary[[k]]$quantiles[[1]]$field)
 lines(res$locs[[k]],res$X.summary[[k]]$quantiles[[2]]$field)
