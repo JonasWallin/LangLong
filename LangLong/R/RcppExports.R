@@ -5,6 +5,10 @@ estimateLong_cpp <- function(in_list) {
     .Call('LANGlong_estimateLong_cpp', PACKAGE = 'LANGlong', in_list)
 }
 
+predictLong_cpp <- function(in_list) {
+    .Call('LANGlong_predictLong_cpp', PACKAGE = 'LANGlong', in_list)
+}
+
 simulateLong_cpp <- function(obs_, operator_, theta_) {
     .Call('LANGlong_simulateLong_cpp', PACKAGE = 'LANGlong', obs_, operator_, theta_)
 }

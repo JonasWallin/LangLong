@@ -196,10 +196,10 @@ List estimateLong_cpp(Rcpp::List in_list)
       */
     	if(silent == 0){
       		Rcpp::Rcout << "i = " << iter << ": \n";
-      		
-      		
+
+
       		process->printIter();
-      		
+
           if(mixobj->Br.size() > 0)
             Rcpp::Rcout << "mixObj->beta_r = " << mixobj->beta_random.transpose() << "\n";
 
@@ -442,5 +442,7 @@ List estimateLong_cpp(Rcpp::List in_list)
 
   Rcpp::List process_list           = process->toList();
   out_list["processes_list"]        = process_list;
-  return(out_list);
+
+  out_list["operator_list"] = operator_list;
+    return(out_list);
 }

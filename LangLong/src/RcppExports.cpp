@@ -17,6 +17,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// predictLong_cpp
+List predictLong_cpp(Rcpp::List in_list);
+RcppExport SEXP LANGlong_predictLong_cpp(SEXP in_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type in_list(in_listSEXP);
+    __result = Rcpp::wrap(predictLong_cpp(in_list));
+    return __result;
+END_RCPP
+}
 // simulateLong_cpp
 List simulateLong_cpp(List obs_, List operator_, List theta_);
 RcppExport SEXP LANGlong_simulateLong_cpp(SEXP obs_SEXP, SEXP operator_SEXP, SEXP theta_SEXP) {

@@ -9,12 +9,12 @@
 #include "GIG.h"
 //TODO: fixed and random effects should be updated jointly if the are very correclated!!
 class MixedEffect {
-  
+
   protected:
-  
+
   public:
     Eigen::MatrixXd Sigma;
-    int Sigma_epsilon;  // added for epsilon of normal noise to U to ensure Sigma pos def 
+    int Sigma_epsilon;  // added for epsilon of normal noise to U to ensure Sigma pos def
     std::string noise;
     Eigen::MatrixXd U;
     std::vector< Eigen::MatrixXd > Bf; // fixed covariates
@@ -25,7 +25,7 @@ class MixedEffect {
     virtual Rcpp::List toList()=0;
     virtual void sampleU(const int, const Eigen::VectorXd &,  const double ) = 0;
     // sampleU2 is sampling with diagonal covariance matrix for the noise
-    virtual void sampleU2(const int, 
+    virtual void sampleU2(const int,
       					  const Eigen::VectorXd &,
       					  const Eigen::VectorXd &,
       					  const double  ) = 0;
@@ -35,20 +35,20 @@ class MixedEffect {
     virtual void remove_inter(const int, Eigen::VectorXd &)  = 0;
     // gradient for fixed variance noise
     virtual void gradient(const int , const Eigen::VectorXd&, const double ) = 0;
-    // gradient for variable variance noise  
+    // gradient for variable variance noise
     virtual void gradient2(const int ,
     					   const Eigen::VectorXd&,
-    					   const Eigen::VectorXd& , 
+    					   const Eigen::VectorXd& ,
     					   const double,
     					   const double) = 0;
     virtual void step_theta(double stepsize) = 0;
     /*
     	simulates from the prior distribution
-    
+
     */
     virtual void simulate() = 0;
-  
-  
+
+
 };
 
 class NormalMixedEffect  : public MixedEffect{
@@ -60,21 +60,21 @@ class NormalMixedEffect  : public MixedEffect{
     Eigen::VectorXd dSigma_vech;
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
-    
+
     Eigen::VectorXd grad_beta_r; // gradient for random intercept
     Eigen::VectorXd grad_beta_r2; //second gradient for random intercept
     Eigen::VectorXd grad_beta_f; // gradient for fixed intercept
     Eigen::MatrixXd H_beta_random; // obsereved fisher infromation for random effect
     Eigen::MatrixXd H_beta_fixed;// obsereved fisher infromation for fixed effect
   public:
-  
+
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
-  
-  
+
+
     NormalMixedEffect();
     void initFromList(Rcpp::List const &);
-    
+
     void remove_inter(const int i, Eigen::VectorXd & Y) {Y -= Br[i]*U.col(i);} ;
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
@@ -86,26 +86,26 @@ class NormalMixedEffect  : public MixedEffect{
 	*/
     void gradient(const int  , const Eigen::VectorXd&, const double );
     void gradient2(const int i,
-    			   const Eigen::VectorXd& res, 
+    			   const Eigen::VectorXd& res,
     			   const Eigen::VectorXd& iV,
     			   const double log_sigma2_noise = 0,
     			   const double EiV = 1.);
-    
+
     void sampleU(const int, const Eigen::VectorXd &, const double ) ;
-    virtual void sampleU2(const int i, 
+    virtual void sampleU2(const int i,
       					  const Eigen::VectorXd & res,
       					  const Eigen::VectorXd & iV,
       					  const double log_sigma2 = 0);
-    
-    
+
+
     void step_theta(double stepsize);
     void step_Sigma(double stepsize);
     void step_beta_fixed(double stepsize);
     void step_beta_random(double stepsize);
     void simulate();
-    
+
     Rcpp::List toList();
-  
+
 };
 
 
@@ -119,11 +119,11 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::VectorXd dSigma_vech;
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
-    
-    
+
+
     double  grad_nu; // gradient for shape parameter
-    Eigen::VectorXd gradMu; // gradient for skewness 
-    Eigen::VectorXd gradMu_2;// second gradient for skewness 
+    Eigen::VectorXd gradMu; // gradient for skewness
+    Eigen::VectorXd gradMu_2;// second gradient for skewness
     Eigen::VectorXd grad_beta_r; // gradient for random intercept
     Eigen::VectorXd grad_beta_r2; //second gradient for random intercept
     Eigen::VectorXd grad_beta_f; // gradient for fixed intercept
@@ -134,24 +134,23 @@ class NIGMixedEffect  : public MixedEffect{
     double VV; // prior variance of V used for the Hessian of random effects
     double a_GIG;
     gig rgig;
-    
+
     void step_Sigma(double stepsize);
     void step_mu(double stepsize);
     void step_nu(double stepsize);
-    
+
   public:
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
-    Eigen::VectorXd V;
     Eigen::VectorXd mu;
     double          nu;
-  
-  
+    Eigen::VectorXd V;
+
     NIGMixedEffect();
     void sampleV(const int);
     void initFromList(Rcpp::List const &);
     void sampleU(const int, const Eigen::VectorXd &, const double) ;
-    virtual void sampleU2(const int i, 
+    virtual void sampleU2(const int i,
       					  const Eigen::VectorXd & res,
       					  const Eigen::VectorXd & iV,
       					  const double log_sigma2_noise = 0);
@@ -159,7 +158,7 @@ class NIGMixedEffect  : public MixedEffect{
     void add_inter(const int i, Eigen::VectorXd & Y)    {Y += Br[i]*U.col(i);} ;
     void remove_cov(const int , Eigen::VectorXd & );
     void add_cov(const int    , Eigen::VectorXd & );
-    void gradient2(const int i, 
+    void gradient2(const int i,
     			   const Eigen::VectorXd& res,
     			   const Eigen::VectorXd& iV,
     			   const double log_sigma2_noise = 0,
@@ -171,9 +170,9 @@ class NIGMixedEffect  : public MixedEffect{
     void step_beta_random(double stepsize);
     Rcpp::List toList();
     void simulate();
-  
-  
-  
+
+
+
 };
 
 // mixed effect util
