@@ -14,6 +14,7 @@ nSim  <- 10
 n.obs  <- 10
 n <- 100
 n.pred <- 100
+pred.type <- "Smoothing"
 ###
 # setup of objects
 #
@@ -89,7 +90,7 @@ if(1){
                       locs.pred = locs.pred,
                       Brandom.pred = B_random.pred,
                       Bfixed.pred = B_fixed.pred,
-                      type = "Filter",
+                      type = pred.type,
                       nSim             = nSim,
                       locs             = locs,
                       mixedEffect_list = mixedEffect_list,

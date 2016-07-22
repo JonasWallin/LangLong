@@ -31,21 +31,28 @@ List predictLong_cpp(Rcpp::List in_list)
   //**********************************
   //     setting up the main data
   //**********************************
+  Rcpp::Rcout << "here1\n";
   Rcpp::List obs_list  = Rcpp::as<Rcpp::List> (in_list["obs_list"]);
   int nindv = obs_list.length(); //count number of patients
   std::vector< Eigen::SparseMatrix<double,0,int> > As( nindv);
   std::vector< Eigen::SparseMatrix<double,0,int> > As_pred( nindv);
   std::vector< Eigen::VectorXd > Ys( nindv);
   std::vector< Eigen::MatrixXd > pred_ind(nindv);
+  std::vector< Eigen::MatrixXd > obs_ind(nindv);
   std::vector< Eigen::MatrixXd > Bfixed_pred(nindv);
   std::vector< Eigen::MatrixXd > Brandom_pred(nindv);
   int count;
   count = 0;
+  Rcpp::Rcout << "here2\n";
   for( List::iterator it = obs_list.begin(); it != obs_list.end(); ++it ) {
     List obs_tmp = Rcpp::as<Rcpp::List>(*it);
+    Rcpp::Rcout << "here2.1\n";
     As[count]            = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(obs_tmp["A"]);
     As_pred[count]       = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(obs_tmp["Apred"]);
     pred_ind[count]      = Rcpp::as<Eigen::MatrixXd>(obs_tmp["pred_ind"]);
+    Rcpp::Rcout << "here2.2\n";
+    obs_ind[count]       = Rcpp::as<Eigen::MatrixXd>(obs_tmp["obs_ind"]);
+    Rcpp::Rcout << "here2.3\n";
     Ys[count]            = Rcpp::as<Eigen::VectorXd>(obs_tmp["Y"]);
     Brandom_pred[count]  = Rcpp::as<Eigen::MatrixXd>(obs_tmp["Brandom_pred"]);
     Bfixed_pred[count]   = Rcpp::as<Eigen::MatrixXd>(obs_tmp["Bfixed_pred"]);
@@ -57,6 +64,7 @@ List predictLong_cpp(Rcpp::List in_list)
   //**********************************
   //operator setup
   //***********************************
+  Rcpp::Rcout << "here3\n";
   Rcpp::List operator_list  = Rcpp::as<Rcpp::List> (in_list["operator_list"]);
   std::string type_operator = Rcpp::as<std::string>(operator_list["type"]);
   Qmatrix* Kobj;
@@ -177,15 +185,17 @@ List predictLong_cpp(Rcpp::List in_list)
     WVec[i].resize(As_pred[i].rows(), nSim);
     Eigen::MatrixXd random_effect = mixobj->Br[i];
     Eigen::MatrixXd fixed_effect = mixobj->Bf[i];
-    for(int ipred = 0; ipred < Ys[i].size(); ipred++){
+    for(int ipred = 0; ipred < pred_ind[i].rows(); ipred++){
       if(silent == 0){
         Rcpp::Rcout << " location = " << ipred << ": \n";
       }
-      //remove data after loc[i]:
-      Eigen::SparseMatrix<double,0,int> A = As[i].topRows(ipred+1);
-      Eigen::VectorXd  Y = Ys[i].head(ipred+1);
-      mixobj->Br[i] = random_effect.topRows(ipred+1);
-      mixobj->Bf[i] = fixed_effect.topRows(ipred+1);
+      //extract data to use for prediction:
+      Rcpp::Rcout << obs_ind[i](ipred,0) << " " << obs_ind[i](ipred,1) << "\n";
+      Eigen::SparseMatrix<double,0,int> A = As[i].middleRows(obs_ind[i](ipred,0),obs_ind[i](ipred,1));
+      Eigen::VectorXd  Y = Ys[i].segment(obs_ind[i](ipred,0),obs_ind[i](ipred,1));
+      mixobj->Br[i] = random_effect.middleRows(obs_ind[i](ipred,0),obs_ind[i](ipred,1));
+      mixobj->Bf[i] = fixed_effect.middleRows(obs_ind[i](ipred,0),obs_ind[i](ipred,1));
+
       for(int ii = 0; ii < nSim + nBurnin; ii ++){
         Rcpp::Rcout << "iter = " << ii << "\n";
         Eigen::VectorXd  res = Y;
@@ -208,7 +218,7 @@ List predictLong_cpp(Rcpp::List in_list)
           //errObj->Vs[i] = errObj->Vs[i].head(ipred+1);
           mixobj->sampleU2( i,
                             res,
-                            errObj->Vs[i].head(ipred+1).cwiseInverse(),
+                            errObj->Vs[i].segment(obs_ind[i](ipred,0),obs_ind[i](ipred,1)).cwiseInverse(),
                             2 * log(errObj->sigma));
 
           mixobj->remove_inter(i, res);
@@ -247,7 +257,7 @@ List predictLong_cpp(Rcpp::List in_list)
                                A,
                                errObj->sigma,
                                Solver[i],
-                               errObj->Vs[i].head(ipred+1).cwiseInverse());
+                               errObj->Vs[i].segment(obs_ind[i](ipred,0),obs_ind[i](ipred,1)).cwiseInverse());
         res -= A * process->Xs[i];
 
         //if(res.cwiseAbs().sum() > 1e16){
@@ -262,7 +272,7 @@ List predictLong_cpp(Rcpp::List in_list)
         //***********************************
         //Rcpp::Rcout << "here4\n";
         if(type_MeasurementError != "Normal"){
-          errObj->sampleV(i, res,ipred);
+          errObj->sampleV(i, res,obs_ind[i](ipred,0)+obs_ind[i](ipred,1));
         }
         // save samples
         if(ii >= nBurnin){

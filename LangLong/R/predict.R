@@ -1,6 +1,3 @@
-library(INLA)
-library(GHmixedeffect)
-
 #' @param   Y           - list with the observations
 #' @param   locs        - list with positions of the observations (Y)
 #' @param   locs.pred   - list with positions to predict
@@ -65,20 +62,30 @@ predictLong <- function( Y,
   obs_list <- list()
 
   for(i in 1:length(locs)){
-      n.pred.i = length(locs[[i]])
-      pred.ind <- matrix(nrow = n.pred.i,ncol = 2)
-      for(j in 1:(n.pred.i-1)){
-        # pred.ind shows which values to save for the j:th prediction
-        ind <- (1:length(locs.pred[[i]]))[(locs.pred[[i]] >= locs[[i]][j]) & (locs.pred[[i]] < locs[[i]][j+1])]
-        pred.ind[j,] <- c(ind[1]-1,length(ind)) #first index and number of indices.
+    n.pred.i = length(locs[[i]])
+    if(type == "Filter"){
+        pred.ind <- matrix(nrow = n.pred.i,ncol = 2)
+        obs.ind  <- matrix(nrow = n.pred.i,ncol = 2)
+        for(j in 1:(n.pred.i-1)){
+          # pred.ind shows which values to save for the j:th prediction
+          ind <- (1:length(locs.pred[[i]]))[(locs.pred[[i]] >= locs[[i]][j]) & (locs.pred[[i]] < locs[[i]][j+1])]
+          pred.ind[j,] <- c(ind[1]-1,length(ind)) #first index and number of indices.
+          # obs.ind shows which data to use for the j:th prediction
+          obs.ind[j,] <- c(0,j)
+        }
+        ind <- (1:length(locs.pred[[i]]))[locs.pred[[i]] >= locs[[i]][n.pred.i]]
+        pred.ind[n.pred.i,] <- c(ind[1]-1,length(ind))
+        obs.ind[n.pred.i,] <- c(0,n.pred.i)
+      } else {
+        pred.ind <- matrix(c(0,length(locs.pred[[i]])),nrow = 1,ncol = 2)
+        obs.ind  <- matrix(c(0,n.pred.i),nrow = 1,ncol = 2)
       }
-      ind <- (1:length(locs.pred[[i]]))[locs.pred[[i]] >= locs[[i]][n.pred.i]]
-      pred.ind[n.pred.i,] <- c(ind[1]-1,length(ind))
 
       obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]),
                           Apred = inla.mesh.1d.A(operator_list$mesh1d, locs.pred[[i]]),
                           Y=Y[[i]],
                           pred_ind = pred.ind,
+                          obs_ind = obs.ind,
                           locs = locs[[i]],
                           Brandom_pred = Brandom.pred[[i]],
                           Bfixed_pred = Bfixed.pred[[i]])
