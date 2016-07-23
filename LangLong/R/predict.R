@@ -4,7 +4,7 @@
 #' @param   Brandom.pred - random effect covaraites at prediction locations
 #' @param   Bfixed.pred  - fixed effect covaraites at prediction locations
 #' @param   quantiles   - list of posterior quantiles to compute
-#' @param   return.samples - return samples?
+#' @param   return.samples - return samples used for prediction?
 #' @param   type        - Type of prediction: Filter or Smoothing
 #' @param mixedEffect_list -
 #' @param   meas_noise  - the aviable noise classes: Normal or NIG
@@ -29,11 +29,8 @@
 #' @param nu              - shape parameter for NIG or GAL
 #' @param mu              - assymetric parameter for NIG or GAL
 #'
-#' @param step0           - stepsize for optimizer is step0 / i^alpha
-#' @param alpha           - stepsize for optimizer is step0 / i^alpha
-#' @param pSubsample      - precentage of data used in each gradient subsampling
-#' @param nIter           - number of iteration of the stochastic gradient
-#' @param nSim            - number of samples of the gibbs sampler to estimate the gradient
+#' @param nSim            - number of samples of the gibbs sampler
+#' @param nBurnin         - number of samples to discard before starting prediction
 #' @parma silent          - print iteration info
 predictLong <- function( Y,
                          locs,
