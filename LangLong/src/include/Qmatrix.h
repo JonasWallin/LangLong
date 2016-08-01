@@ -27,6 +27,8 @@ class Qmatrix {
   protected:
     solver * Qsolver;
   public:
+  
+    Eigen::VectorXd  loc; // location of the position
     Qmatrix() {Qsolver = NULL;};
     virtual ~Qmatrix(){delete Qsolver;};
     int d; //dimension
@@ -54,7 +56,7 @@ class Qmatrix {
     virtual void gradient( const Eigen::VectorXd &, const Eigen::VectorXd & ){};
     virtual void step_theta(const double ){};
     
-    
+    virtual double trace_variance( const Eigen::SparseMatrix<double,0,int> & ){return 1;};
     double tau;
 };
 
@@ -62,6 +64,9 @@ class constMatrix : public Qmatrix{
   protected:
     Eigen::SparseMatrix<double,0,int> m;
     Eigen::VectorXd v;
+    double m_loc;
+    Eigen::VectorXd  h; //number of parameters
+    double h_average;
   public:
   
 	void gradient(const Eigen::VectorXd &, const Eigen::VectorXd & );
@@ -82,6 +87,7 @@ class constMatrix : public Qmatrix{
     Rcpp::List output_list();
     void show_results(){};
     double logdet(){return 0;};
+    double trace_variance( const Eigen::SparseMatrix<double,0,int> & ) ;
 };
 
 

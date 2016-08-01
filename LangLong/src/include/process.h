@@ -33,7 +33,11 @@ class Process {
     virtual ~Process(){};
     virtual Rcpp::List toList() {};
     virtual void gradient( const int i ,
-    					   const Eigen::SparseMatrix<double,0,int> & K){};
+			   			  const Eigen::SparseMatrix<double,0,int> & K,
+			   			  const Eigen::SparseMatrix<double,0,int> & A,
+			   			  const Eigen::VectorXd& res,
+			   			  const double sigma,
+			   			  const double trace_var){};
     virtual void step_theta(const double step){};
     virtual void sample_V(const int, 
     					            gig &,
@@ -60,6 +64,17 @@ class Process {
               const double sigma,
               cholesky_solver       & solver,
               const Eigen::VectorXd & iV_noise ){};
+              
+              
+              
+    virtual void gradient_v2( const int i ,
+			   			  const Eigen::SparseMatrix<double,0,int> & K,
+			   			  const Eigen::SparseMatrix<double,0,int> & A,
+			   			  const Eigen::VectorXd& res,
+			   			  const double sigma,
+			   			  const Eigen::VectorXd& iV_noise,
+			   			  const double EiV_noise,
+			   			  const double trace_var) {};
     
 
 };
@@ -97,6 +112,9 @@ class GHProcess : public Process{
 	
   		Eigen::VectorXd  h2;
   		double h_sum;
+  		double h_min;
+  		double h_digamma;
+  		double h_trigamma;
 		double dmu ;
 		double dnu, ddnu ;
 		Eigen::VectorXd EV;
@@ -105,6 +123,15 @@ class GHProcess : public Process{
 		Eigen::VectorXd nu_vec;
 		int vec_counter;
 		double counter;
+		double H_mu, ddmu_1, ddmu_2;
+		double Vv_mean;
+		double h3_mean;
+		
+		void update_nu();
+		void grad_nu(const int);
+		void gradient_mu_centered(const int ,
+								  const Eigen::SparseMatrix<double,0,int> & );
+		
 	public:
 	
 	
@@ -132,7 +159,19 @@ class GHProcess : public Process{
               const Eigen::VectorXd & iV_noise);
 
     void gradient( const int i ,
-    					   const Eigen::SparseMatrix<double,0,int> & K);
+			   			  const Eigen::SparseMatrix<double,0,int> & K,
+			   			  const Eigen::SparseMatrix<double,0,int> & A,
+			   			  const Eigen::VectorXd& res,
+			   			  const double sigma,
+			   			  const double trace_var);
+	void gradient_v2( const int i ,
+			   			  const Eigen::SparseMatrix<double,0,int> & K,
+			   			  const Eigen::SparseMatrix<double,0,int> & A,
+			   			  const Eigen::VectorXd& res,
+			   			  const double sigma,
+			   			  const Eigen::VectorXd& iV_noise,
+			   			  const double EiV_noise,
+			   			  const double trace_var);
     void step_theta(const double );	
     void step_mu(const double );	
     void step_nu(const double );

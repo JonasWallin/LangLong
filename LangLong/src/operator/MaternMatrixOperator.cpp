@@ -6,7 +6,7 @@
 void MaternMatrixOperator::initFromList(Rcpp::List const & init_list, Rcpp::List const & solver_list)
 {
   
-  std::vector<std::string> check_names =  {"C","G", "kappa","B.kappa"};
+  std::vector<std::string> check_names =  {"C", "G", "kappa", "B.kappa", "h"};
   check_Rcpplist(init_list, check_names, "MaternMatrixOperator::initFromList");
   std::vector<std::string> check_names2 =  {"use.chol"};
   check_Rcpplist(solver_list, check_names2, "MaternMatrixOperator::initFromList");
@@ -15,8 +15,7 @@ void MaternMatrixOperator::initFromList(Rcpp::List const & init_list, Rcpp::List
   n = G.rows();
   d = n;
   kpv = Rcpp::as<Eigen::VectorXd>(init_list["kappa"]);
-  nkp = kpv.size();
-
+  nkp = kpv.size();	
   
   eigen_vector_from_list(kpv, init_list, "kappa");
   eigen_matrix_from_list(Bkp, init_list, "B.kappa") ;
@@ -272,3 +271,5 @@ void MaternMatrixOperator::step_theta(const double stepsize)
     counter = 0;
     trace0 = this->trace(0);
 }
+
+

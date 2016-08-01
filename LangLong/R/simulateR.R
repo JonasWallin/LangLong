@@ -93,8 +93,10 @@ simulateLong.R <- function(loc,
                      (operator_List$h * theta$nu)^2)
       Z <- (- operator_List$h  + V[[i]]) * theta$mu + sqrt(V[[i]]) * rnorm(n)
       X[[i]] <- solve(K, Z)
-    }else{
-      print("GAL  NOT IMPLIMENTED YET")
+    }else if( noise == "GAL"){
+      V[[i]] =  rgamma(n, operator_List$h * theta$nu, rep(theta$nu, n)) + 10e-14
+      Z <- (- operator_List$h  + V[[i]]) * theta$mu + sqrt(V[[i]]) * rnorm(n)
+      X[[i]] <- solve(K, Z)
     }
       
     Y[[i]] = (B[[i]]%*%beta + A[[i]]%*%X[[i]] + sigma[i]*rnorm(dim(A[[i]])[1]))@x

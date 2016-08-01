@@ -35,7 +35,8 @@ create_matrices_Matern <- function(locs, n)
                         G = MatrixBlock$g1,
                         h = MatrixBlock$c0@x,
                         B.kappa = as.matrix(rep(1, dim(MatrixBlock$c0)[1])),
-                        kappa = 0
+                        kappa = 0,
+                        loc   = mesh1d$loc
   )
   return(operator_List)
 }
@@ -65,7 +66,8 @@ create_matrices_FD2 <- function(locs, n)
   operator_List <- list(type   = 'fd2',
                         mesh1d = mesh1d,
                         Q      = as(Operator_2D, "dgCMatrix"), 
-                        h      = rep(h, n)
+                        h      = rep(h, n),
+                        loc   = mesh1d$loc
                         )
   return(operator_List)
 }

@@ -356,7 +356,25 @@ List estimateLong_cpp(Rcpp::List in_list)
       			   //***************************************
       			  // operator gradient
       			  //***************************************
-      			  process->gradient(i, K);
+              if(type_MeasurementError != "Normal"){
+                 process->gradient(i, 
+                                K,
+                                A,
+                                res,
+                                errObj->sigma,
+                                Kobj->trace_variance(A),
+                                errObj->Vs[i].cwiseInverse(),
+                                errObj->EiV);
+                 
+                 
+               }else{
+                 process->gradient(i, 
+                                K,
+                                A,
+                                res,
+                                errObj->sigma,
+                                Kobj->trace_variance(A));
+               }
 
       		  }
       		}
