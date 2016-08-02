@@ -5,7 +5,7 @@ using namespace std;
 
 void constMatrix::initFromList(Rcpp::List const & init_list)
 {
- std::vector<std::string> check_names =  {"Q"};
+ std::vector<std::string> check_names =  {"Q","loc", "h"};
   check_Rcpplist(init_list, check_names, "constMatrix::initFromList");
   Q  = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(init_list["Q"]);
   d = Q.rows();
@@ -18,6 +18,11 @@ void constMatrix::initFromList(Rcpp::List const & init_list)
   
   dtau  = 0.;
   ddtau = 0.;
+  
+  loc  = Rcpp::as< Eigen::VectorXd >(init_list["loc"]);
+  h  = Rcpp::as< Eigen::VectorXd >(init_list["h"]);
+  h_average = h.sum() / h.size();
+  m_loc = loc.minCoeff();
 }
 
 void constMatrix::initFromList(Rcpp::List const & init_List, Rcpp::List const & solver_list) 
@@ -33,6 +38,16 @@ void constMatrix::gradient( const Eigen::VectorXd & X, const Eigen::VectorXd & i
   dtau  	  +=  0.5 * d / tau;
   dtau        -=  0.5 * xtQx;
   ddtau       -=  0.5 * d / pow(tau, 2); 
+}
+
+
+double constMatrix::trace_variance( const Eigen::SparseMatrix<double,0,int>& A){
+	Eigen::VectorXd  obs_loc = A * loc;
+	obs_loc.array() -= m_loc;
+	// covariance / h
+	// covariance = t^3/3 (integrated brownian moition
+	return(obs_loc.array().pow(3).sum() / (3 * h_average * tau)); 
+	
 }
 void constMatrix::step_theta(const double stepsize)
 {

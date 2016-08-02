@@ -133,8 +133,9 @@ List estimateProcess_cpp(Rcpp::List in_list)
   	process->setupStoreTracj(nIter);
   	for(int iter=0; iter < nIter + nBurnin; iter++){
 
-      		Rcpp::Rcout << "iter = " << iter << "\n";
-      		
+      		Rcpp::Rcout << "iter = " << iter << " ";
+      		process->printIter() ;
+      		Rcpp::Rcout << "\n";
       	Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
       	K *= sqrt(Kobj->tau);
         
@@ -153,7 +154,8 @@ List estimateProcess_cpp(Rcpp::List in_list)
       			Q =  Q * iV.asDiagonal();
       			Q =  Q * K;   	
       			
-        		
+        	
+            	
         		for(int j =0; j < Kobj->d; j++)
           			z[j] =  normal(random_engine);
       
@@ -169,11 +171,10 @@ List estimateProcess_cpp(Rcpp::List in_list)
                 		Solver[i]);    
             
             
-            
             // sample V| X
           	process->sample_V(i, rgig, K);
-                                       
-        		
+                                    
+        	 	
        
       		//***************************************
       		//  computing gradients
@@ -182,7 +183,12 @@ List estimateProcess_cpp(Rcpp::List in_list)
       			   //***************************************
       			  // operator gradient
       			  //***************************************
-      			  process->gradient(i, K);
+      			  process->gradient(i,
+                               K,
+                               A,
+                               Ys[i],
+                               sigma,
+                               Kobj->trace_variance(A));
               
       		  }  
       		}
