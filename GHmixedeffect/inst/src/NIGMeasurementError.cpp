@@ -13,9 +13,10 @@ NIGMeasurementError::NIGMeasurementError(){
   ddsigma = 0;
   dnu     = 0;
   ddnu    = 0;
+  common_V  = 0;
   noise = "NIG";
   rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-} 
+}
 Rcpp::List NIGMeasurementError::toList()
 {
   Rcpp::List out;
@@ -32,16 +33,21 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
     sigma = Rcpp::as < double >( init_list["sigma"]);
   else
   	sigma  = 1.;
-  	
+
+  if(init_list.containsElementNamed("common_V"))
+    common_V = Rcpp::as < int >( init_list["common_V"]);
+  else
+    common_V  = 0;
+
   if(init_list.containsElementNamed("nu"))
     nu = Rcpp::as < double >( init_list["nu"]);
   else
     nu = 1.;
- 
-    EV  = 1.; 
-    EiV = 1. + 1./nu;  
+
+    EV  = 1.;
+    EiV = 1. + 1./nu;
  int i = 0;
- 
+
  if( init_list.containsElementNamed("Vs" )){
  	Rcpp::List Vs_list = init_list["Vs"];
  	Vs.resize(Vs_list.length());
@@ -49,38 +55,54 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
       Vs[i++] = Rcpp::as < Eigen::VectorXd >( it[0]);
     }
  }else
- 	  throw("in NigMeasurementError::initFromList Vs must be set! \n");   
-    
-    
+ 	  throw("in NigMeasurementError::initFromList Vs must be set! \n");
+
+
 }
 
 std::vector< Eigen::VectorXd > NIGMeasurementError::simulate(std::vector< Eigen::VectorXd > Y)
 {
-	
+
 	std::vector< Eigen::VectorXd > residual( Y.size());
 	for(int i = 0; i < Y.size(); i++){
 		residual[i] =   sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y[i].size()) ));
-		for(int ii = 0; ii < residual[i].size(); ii++)
-		{
-			double V = rgig.sample(-0.5, nu, nu);
-			Vs[i][ii] = V;
-			residual[i][ii] *=  sqrt(V);
-		}
-		
+	  if(common_V == 0){
+	    for(int ii = 0; ii < residual[i].size(); ii++)
+	    {
+	      double V = rgig.sample(-0.5, nu, nu);
+	      Vs[i][ii] = V;
+	      residual[i][ii] *=  sqrt(V);
+	    }
+	  } else {
+	    double V = rgig.sample(-0.5, nu, nu);
+	    for(int ii = 0; ii < residual[i].size(); ii++)
+	    {
+	      Vs[i][ii] = V;
+	      residual[i][ii] *=  sqrt(V);
+	    }
+	  }
+
+
 	}
 	return(residual);
 }
 
-void NIGMeasurementError::sampleV(const int i, 
-								  const Eigen::VectorXd& res,
-								  int n_s ){
-
+void NIGMeasurementError::sampleV(const int i, const Eigen::VectorXd& res, int n_s )
+{
 	if(n_s == -1)
 		n_s = Vs[i].size();
+	if(common_V == 0){
     for(int j = 0; j < n_s; j++)
-    	Vs[i][j] = rgig.sample(-1., nu, pow(res[j]/sigma, 2) + nu);
-};
-void NIGMeasurementError::gradient(const int i, 
+	    Vs[i][j] = rgig.sample(-1., nu, pow(res[j]/sigma, 2) + nu);
+	} else {
+	  double tmp = res.array().square().sum()/pow(sigma, 2);
+	  double cv = rgig.sample(-0.5*(n_s+1), nu, tmp + nu);
+	  for(int j = 0; j < n_s; j++)
+	    Vs[i][j] = cv;
+  }
+}
+
+void NIGMeasurementError::gradient(const int i,
                                  const Eigen::VectorXd& res)
 {
     counter++;
@@ -91,9 +113,9 @@ void NIGMeasurementError::gradient(const int i,
     // Expected fisher infromation
     // res.size()/pow(sigma, 2) - 3 * E[res.array().square().sum()] /pow(sigma, 4);
     ddsigma += - 2 * res.size()/pow(sigma, 2);
-    
+
     dnu  += 0.5 * ( res.size() / nu + 2 * res.size() -   (Vs[i].array().sum() + iV.array().sum()) );
-    ddnu += - res.size()/( nu * nu);
+    ddnu += - 0.5*res.size()/( nu * nu);
 }
 void NIGMeasurementError::step_theta(double stepsize)
 {
@@ -111,7 +133,7 @@ double sigma_temp = -1;
     sigma_temp = sigma - stepsize * dsigma;
     stepsize *= 0.5;
     if(stepsize <= 1e-16)
-        throw("in NIGMeasurementError:: can't make sigma it positive \n");   
+        throw("in NIGMeasurementError:: can't make sigma it positive \n");
   }
   sigma = sigma_temp;
   dsigma  = 0;
@@ -127,12 +149,12 @@ double nu_temp = -1;
     nu_temp = nu - stepsize * dnu;
     stepsize *= 0.5;
     if(stepsize <= 1e-16)
-        throw("in NIGMeasurementError:: can't make nu it positive \n");   
+        throw("in NIGMeasurementError:: can't make nu it positive \n");
   }
   nu = nu_temp;
-  EV  = 1.; 
-  EiV = 1. + 1./nu;  
+  EV  = 1.;
+  EiV = 1. + 1./nu;
   dnu  = 0;
   ddnu = 0;
-  
+
 }

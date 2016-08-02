@@ -9,11 +9,11 @@
 #include "GIG.h"
 class MeasurementError {
   protected:
-  
+
   public:
-  
+
    	double EV;  // if there the random variance in the Noise E[V]
-    double EiV; // if there is random varoance in the noise E[V^-1]   
+    double EiV; // if there is random varoance in the noise E[V^-1]
   	double sigma;
   	std::vector< Eigen::VectorXd > Vs;
     std::string noise;
@@ -22,11 +22,11 @@ class MeasurementError {
     virtual void initFromList(Rcpp::List const &)=0;
     virtual Rcpp::List toList()=0;
     virtual void sampleV(const int , const Eigen::VectorXd&, int = -1) = 0;
-    
+
     // sampling from the prior model
   	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >)  = 0;
-  	
-  
+
+
 };
 
 
@@ -58,6 +58,7 @@ class NIGMeasurementError : public MeasurementError{
     	double counter;
 
 	public:
+	  int common_V;
 		double nu;
 		NIGMeasurementError();
 		void gradient(const int , const Eigen::VectorXd&);
