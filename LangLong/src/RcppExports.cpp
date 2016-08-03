@@ -28,43 +28,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// simulateLong_cpp
-List simulateLong_cpp(List obs_, List operator_, List theta_);
-RcppExport SEXP LANGlong_simulateLong_cpp(SEXP obs_SEXP, SEXP operator_SEXP, SEXP theta_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< List >::type obs_(obs_SEXP);
-    Rcpp::traits::input_parameter< List >::type operator_(operator_SEXP);
-    Rcpp::traits::input_parameter< List >::type theta_(theta_SEXP);
-    __result = Rcpp::wrap(simulateLong_cpp(obs_, operator_, theta_));
-    return __result;
-END_RCPP
-}
-// testSimulateX_cpp
-List testSimulateX_cpp(List operator_, List theta_);
-RcppExport SEXP LANGlong_testSimulateX_cpp(SEXP operator_SEXP, SEXP theta_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< List >::type operator_(operator_SEXP);
-    Rcpp::traits::input_parameter< List >::type theta_(theta_SEXP);
-    __result = Rcpp::wrap(testSimulateX_cpp(operator_, theta_));
-    return __result;
-END_RCPP
-}
-// testSimulateX2_cpp
-List testSimulateX2_cpp(List operator_, List theta_);
-RcppExport SEXP LANGlong_testSimulateX2_cpp(SEXP operator_SEXP, SEXP theta_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< List >::type operator_(operator_SEXP);
-    Rcpp::traits::input_parameter< List >::type theta_(theta_SEXP);
-    __result = Rcpp::wrap(testSimulateX2_cpp(operator_, theta_));
-    return __result;
-END_RCPP
-}
 // simulateLongGH_cpp
 List simulateLongGH_cpp(Rcpp::List in_list);
 RcppExport SEXP LANGlong_simulateLongGH_cpp(SEXP in_listSEXP) {

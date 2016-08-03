@@ -1,9 +1,9 @@
 ##
-# simple test that verifies that the model can correctly idenitfy the parameters, 
+# simple test that verifies that the model can correctly idenitfy the parameters,
 # from simulated data for NIG measurement error
 # the model is
 # Y_{ij} = \simga\sqrt{V}Z, where
-# V      \sim NIG(\nu,\nu)  
+# V      \sim NIG(\nu,\nu)
 #
 ##
 rm(list=ls())
@@ -21,14 +21,14 @@ Y_list     <- list()
 Vin        <- list()
 for(i in 1:n.pers)
 {
-  V <- rGIG(rep(-0.5,n.obs), rep(nu, n.obs), rep(nu, n.obs))
+ V <- rGIG(rep(-0.5,n.obs), rep(nu, n.obs), rep(nu, n.obs))
   V_list[[i]] <- V
   Y_list[[i]] <- sqrt(V) * rnorm(n = n.obs, 0, sd = sigma)
   Vin[[i]] <- rep(1, n.obs)
 }
 
-input <- list(Y  = Y_list, 
-              Vs = Vin,  
+input <- list(Y  = Y_list,
+              Vs = Vin,
               sigma_eps   = as.matrix(1.),
               nu          = as.matrix(1.),
               Niter       = 5000)

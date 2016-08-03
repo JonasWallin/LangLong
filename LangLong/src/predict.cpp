@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <math.h>
-#include "Qmatrix.h"
+#include "operatorMatrix.h"
 #include "operator_helper.h"
 #include "solver.h"
 #include "GIG.h"
@@ -61,22 +61,11 @@ List predictLong_cpp(Rcpp::List in_list)
   //***********************************
   Rcpp::List operator_list  = Rcpp::as<Rcpp::List> (in_list["operator_list"]);
   std::string type_operator = Rcpp::as<std::string>(operator_list["type"]);
-  Qmatrix* Kobj;
+  operatorMatrix* Kobj;
   //Kobj = new MaternMatrixOperator;
   operator_select(type_operator, &Kobj);
   Kobj->initFromList(operator_list, List::create(Rcpp::Named("use.chol") = 1));
-  Eigen::VectorXd kappa;
-  if(operator_list.containsElementNamed("kappa"))
-    kappa = Rcpp::as<Eigen::VectorXd> ( operator_list["kappa"]);
-  Eigen::VectorXd dkappa;
-  dkappa.setZero(kappa.size());
 
-  Eigen::VectorXd  tauVec;
-  Eigen::MatrixXd kappaVec;
-  if(kappa.size() > 0)
-    kappaVec.resize(1, kappa.size());
-  tauVec.resize(1,1);
-  Kobj->vec_to_theta( kappa);
   Eigen::VectorXd h = Rcpp::as<Eigen::VectorXd>( operator_list["h"]);
 
   //Prior solver

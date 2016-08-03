@@ -9,18 +9,6 @@ predictLong_cpp <- function(in_list) {
     .Call('LANGlong_predictLong_cpp', PACKAGE = 'LANGlong', in_list)
 }
 
-simulateLong_cpp <- function(obs_, operator_, theta_) {
-    .Call('LANGlong_simulateLong_cpp', PACKAGE = 'LANGlong', obs_, operator_, theta_)
-}
-
-testSimulateX_cpp <- function(operator_, theta_) {
-    .Call('LANGlong_testSimulateX_cpp', PACKAGE = 'LANGlong', operator_, theta_)
-}
-
-testSimulateX2_cpp <- function(operator_, theta_) {
-    .Call('LANGlong_testSimulateX2_cpp', PACKAGE = 'LANGlong', operator_, theta_)
-}
-
 simulateLongGH_cpp <- function(in_list) {
     .Call('LANGlong_simulateLongGH_cpp', PACKAGE = 'LANGlong', in_list)
 }

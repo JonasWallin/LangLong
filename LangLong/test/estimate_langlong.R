@@ -8,12 +8,15 @@ library(INLA)
 library(LANGlong)
 library(methods)
 
-nIter <- 1000
-n.pers <- 10
+nIter <- 5000
+n.pers <- 100
 nSim  <- 1
-n.obs  <- 100
+n.obs  <- 1000
 n <- 100
 
+use.matern <- TRUE
+kappa.true <- 2
+tau.true <- 15
 ###
 # setup of objects
 #
@@ -29,31 +32,33 @@ for(i in 1:n.pers)
   B_random[[i]] <- cbind(rep(1, n.obs), (1:n.obs) / n.obs )
   B_fixed[[i]]  <- as.matrix(rnorm(n = n.obs, 0,sd=2))
   Y[[i]] <- rep(1,n.obs)
-  locs[[i]] <- 1:n.obs
+  locs[[i]] <- seq(from=0,to=10,length.out=n.obs)
   Vin[[i]] <- rep(1, n.obs)
 }
 mError_list <- list(Vs = Vin, noise = "NIG", sigma = 0.1, nu = 1)
-mixedEffect_list  <- list(B_random = B_random, 
+mixedEffect_list  <- list(B_random = B_random,
                           B_fixed  = B_fixed,
-                          beta_random = as.matrix(c(2,-1)), 
-                          beta_fixed  = as.matrix(c(.1)), 
-                          Sigma = diag(c(0.1, 0.2)), 
+                          beta_random = as.matrix(c(2,-1)),
+                          beta_fixed  = as.matrix(c(.1)),
+                          Sigma = diag(c(0.1, 0.2)),
                           noise = "Normal",
                           Sigma_epsilon=1)
 
-operator_list <- create_operator(locs, n, name = "fd2")
+if(use.matern){
+  operator_list <- create_operator(locs, n, name = "Matern")
+  operator_list$type  <- "Matern"
+  operator_list$kappa <- kappa.true
+  operator_list$tau   <- tau.true
+} else {
+  operator_list <- create_operator(locs, n, name = "fd2")
+  operator_list$type  <- "fd2"
+  operator_list$tau   <- tau.true
+}
 
-#operator_list$type  <- "matern"
-operator_list$type  <- "fd2"
-#operator_list$kappa <- -2
-operator_list$tau   <- 15
-
-
-
-processes_list = list(noise = "Normal", 
-                      nu  = 0., 
+processes_list = list(noise = "Normal",
+                      nu  = 0.,
                       mu  = 0.)
-processes_list$V <- list() 
+processes_list$V <- list()
 for(i in 1:length(locs))
 {
   processes_list$V[[i]] <- operator_list$h
@@ -64,20 +69,26 @@ for(i in 1:length(locs))
 ###
 mixedEffect_list_in = mixedEffect_list
 
-sim_res <- simulateLongPrior( Y                 = Y, 
+sim_res <- simulateLongPrior( Y                 = Y,
                               locs              = locs,
                               mixedEffect_list  = mixedEffect_list_in,
                               measurment_list   = mError_list,
                               processes_list    = processes_list,
                               operator_list     = operator_list)
 
+if(use.matern){
+  operator_list$kappa <- kappa.true*2
+  operator_list$tau   <- tau.true/3
+} else {
+  operator_list$tau   <- tau.true/2
+}
 
 #mixedEffect_list$beta_random = as.matrix(c(0.,0.))
 #mixedEffect_list$Sigma = diag(c(1,1.))
 #mError_list$sigma = as.matrix(c(1.))
 processes_list$X <- sim_res$X
 if(1){
-res <- estimateLong(Y                = sim_res$Y, 
+res <- estimateLong(Y                = sim_res$Y,
                     nIter            = nIter,
                     nSim             = nSim,
                     locs             = locs,
@@ -86,6 +97,17 @@ res <- estimateLong(Y                = sim_res$Y,
                     processes_list   = processes_list,
                     operator_list    = operator_list)
 
+if(use.matern){
+  par(mfrow=c(1,2))
+  plot(res$operator_list$tauVec,col=2,type="l")
+  lines(rep(tau.true,nIter))
+  plot(res$operator_list$kappaVec,col=2,type="l")
+  lines(rep(kappa.true,nIter))
+
+} else {
+  plot(res$operator_list$tauVec,col=2,type="l")
+  lines(rep(tau.true,nIter))
+  }
 }
 x11()
 
