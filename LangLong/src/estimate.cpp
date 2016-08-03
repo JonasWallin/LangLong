@@ -277,7 +277,6 @@ List estimateLong_cpp(Rcpp::List in_list)
                                 A,
                                 res,
                                 errObj->sigma,
-                                Kobj->trace_variance(A),
                                 errObj->Vs[i].cwiseInverse(),
                                 errObj->EiV);
                 */

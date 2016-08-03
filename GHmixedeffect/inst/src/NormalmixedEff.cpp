@@ -16,6 +16,7 @@ Eigen::VectorXd sampleNormalCan(const Eigen::VectorXd & b,const Eigen::MatrixXd 
 NormalMixedEffect::NormalMixedEffect(){
   counter = 0;
   noise = "Normal";
+  npars = 0;
   //dlog_sigma2  = 0;
   //ddlog_sigma2 = 0;
 } 
@@ -50,7 +51,7 @@ void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
       beta_fixed = Rcpp::as < Eigen::VectorXd >( init_list["beta_fixed"]);
     else
       beta_fixed.setZero(Bf[0].cols());
-    
+     npars += Bf[0].cols();
      H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
   
     
@@ -71,6 +72,8 @@ void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
       beta_random = Rcpp::as < Eigen::VectorXd >( init_list["beta_random"]);
     else
       beta_random.setZero(Br[0].cols());
+      
+    npars += Br[0].cols();
   }else{ Br.resize(0);}
   
   H_beta_random.setZero(Br[0].cols(), Br[0].cols());
@@ -86,6 +89,7 @@ void NormalMixedEffect::initFromList(Rcpp::List const &init_list)
       Sigma.setIdentity(Br[0].cols(), Br[0].cols());
     
     Sigma_vech = vech(Sigma);
+    npars += Sigma_vech.size();
     UUt.setZero(Sigma.cols() * Sigma.rows());
     dSigma_vech.setZero(Sigma_vech.size());
     invSigma  = Sigma.inverse();
@@ -206,14 +210,13 @@ void NormalMixedEffect::step_theta(double stepsize)
   }
   if(Bf.size() > 0)
     step_beta_fixed(stepsize);
-  
-  
+    
+  clear_gradient();
   counter = 0;
 }
 void NormalMixedEffect::step_beta_fixed(double stepsize)
 {
     beta_fixed += stepsize *  H_beta_fixed.ldlt().solve(grad_beta_f);
-    grad_beta_f.setZero(Bf[0].cols());
     H_beta_fixed.setZero(Bf[0].cols(), Bf[0].cols());
   
 }
@@ -221,7 +224,6 @@ void NormalMixedEffect::step_beta_random(double stepsize)
 {
     beta_random += (0.5 * stepsize) *  H_beta_random.ldlt().solve(grad_beta_r);
     beta_random += (0.5 * stepsize) * (Sigma * grad_beta_r2)/ counter;
-    grad_beta_r.setZero(Br[0].cols());
     grad_beta_r2.setZero(Br[0].cols());
     H_beta_random.setZero(Br[0].cols(), Br[0].cols());
 }
@@ -251,7 +253,6 @@ void NormalMixedEffect::step_Sigma(double stepsize)
    
   }
     
-    dSigma_vech.setZero(Sigma_vech.size());
     UUt.setZero(Sigma.cols() * Sigma.rows());
     invSigma  = Sigma.inverse();
     Sigma_vech = vech(Sigma);
@@ -270,4 +271,16 @@ void NormalMixedEffect::add_cov(const int    i, Eigen::VectorXd & Y)
     Y += Br[i] * beta_random;
   if(Bf.size() > 0)
     Y += Bf[i] * beta_fixed;
+}
+
+void NormalMixedEffect::clear_gradient()
+{
+	
+	if(Bf.size() > 0)
+		grad_beta_f.setZero(Bf[0].cols());
+		
+	if(Br.size() > 0){
+		dSigma_vech.setZero(Sigma_vech.size());
+		grad_beta_r.setZero(Br[0].cols());
+	}
 }

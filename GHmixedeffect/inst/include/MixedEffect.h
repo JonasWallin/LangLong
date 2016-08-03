@@ -13,6 +13,8 @@ class MixedEffect {
   protected:
 
   public:
+  	int npars; // number of parameters
+  	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
     Eigen::MatrixXd Sigma;
     int Sigma_epsilon;  // added for epsilon of normal noise to U to ensure Sigma pos def
     std::string noise;
@@ -47,7 +49,14 @@ class MixedEffect {
 
     */
     virtual void simulate() = 0;
-
+    /*
+    	clear gradient
+    */
+	virtual void clear_gradient() = 0;
+    /*
+    	stores the covariance of the parameters 
+    */
+	void set_covariance(const Eigen::MatrixXd & Cov_in) {Cov_theta = Cov_in;};
 
 };
 
@@ -105,6 +114,12 @@ class NormalMixedEffect  : public MixedEffect{
     void simulate();
 
     Rcpp::List toList();
+    
+    
+    /*
+    	clear gradient
+    */
+	void clear_gradient();
 
 };
 
@@ -172,6 +187,10 @@ class NIGMixedEffect  : public MixedEffect{
     void simulate();
 
 
+    /*
+    	clear gradient
+    */
+	void clear_gradient();
 
 };
 
