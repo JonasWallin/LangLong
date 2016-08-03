@@ -6,25 +6,27 @@
 
 
 NIGMeasurementError::NIGMeasurementError(){
-  counter = 0;
-  sigma   = 1;
-  nu      = 1;
-  dsigma  = 0;
-  ddsigma = 0;
-  dnu     = 0;
-  ddnu    = 0;
+  counter   = 0;
+  sigma     = 1;
+  nu        = 1;
+  dsigma    = 0;
+  ddsigma   = 0;
+  dnu       = 0;
+  ddnu      = 0;
   common_V  = 0;
+  npars     = 0;
   noise = "NIG";
   rgig.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 }
 Rcpp::List NIGMeasurementError::toList()
 {
   Rcpp::List out;
-  out["noise"]     = noise;
-  out["sigma"]     = sigma;
-  out["nu"]        = nu;
-  out["Vs"]        = Vs;
-  out["noise"]     = noise;
+  out["noise"]       = noise;
+  out["sigma"]       = sigma;
+  out["nu"]          = nu;
+  out["Vs"]          = Vs;
+  out["Cov_theta"]   = Cov_theta;
+  out["noise"]       = noise;
   return(out);
 }
 void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
@@ -34,6 +36,7 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
   else
   	sigma  = 1.;
 
+   npars += 1;
   if(init_list.containsElementNamed("common_V"))
     common_V = Rcpp::as < int >( init_list["common_V"]);
   else
@@ -46,6 +49,8 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
 
     EV  = 1.;
     EiV = 1. + 1./nu;
+
+   npars += 1;
  int i = 0;
 
  if( init_list.containsElementNamed("Vs" )){
@@ -121,6 +126,7 @@ void NIGMeasurementError::step_theta(double stepsize)
 {
   step_sigma(stepsize);
   step_nu(stepsize);
+  clear_gradient();
   counter = 0;
 }
 
@@ -136,7 +142,6 @@ double sigma_temp = -1;
         throw("in NIGMeasurementError:: can't make sigma it positive \n");
   }
   sigma = sigma_temp;
-  dsigma  = 0;
   ddsigma = 0;
 }
 
@@ -154,7 +159,20 @@ double nu_temp = -1;
   nu = nu_temp;
   EV  = 1.;
   EiV = 1. + 1./nu;
-  dnu  = 0;
   ddnu = 0;
 
+}
+
+void NIGMeasurementError::clear_gradient()
+{
+	dsigma = 0;
+	dnu    = 0;
+}
+
+Eigen::VectorXd NIGMeasurementError::get_gradient()
+{
+	Eigen::VectorXd g(npars);
+	g[0] = dsigma;
+	g[1] = dnu;
+	return(g);
 }

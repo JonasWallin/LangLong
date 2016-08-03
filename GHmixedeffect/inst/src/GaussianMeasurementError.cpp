@@ -13,12 +13,14 @@ GaussianMeasurementError::GaussianMeasurementError(){
   EV  = 1.;  // if there the random variance in the Noise E[V]
   EiV = 1.; 
   noise = "Normal";
+  npars = 1;
 } 
 Rcpp::List GaussianMeasurementError::toList()
 {
   Rcpp::List out;
   out["sigma"]  = sigma;
   out["noise"]  = noise;
+  out["Cov_theta"]   = Cov_theta;
   return(out);
 }
 void GaussianMeasurementError::initFromList(Rcpp::List const &init_list)
@@ -50,8 +52,8 @@ void GaussianMeasurementError::step_theta(double stepsize)
         throw("in GaussianMeasurementError:: can't make sigma it positive \n");   
   }
   sigma = sigma_temp;
+  clear_gradient();
   counter = 0;
-  dsigma  = 0;
   ddsigma = 0;
 }
 
@@ -63,4 +65,17 @@ std::vector< Eigen::VectorXd > GaussianMeasurementError::simulate(std::vector< E
 		residual[i] =  sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y[i].size()) ));
     
 	return(residual);
+}
+
+
+void GaussianMeasurementError::clear_gradient()
+{
+	dsigma = 0;
+}
+
+Eigen::VectorXd GaussianMeasurementError::get_gradient()
+{
+	Eigen::VectorXd g(npars);
+	g[0] = dsigma;
+	return(g);
 }

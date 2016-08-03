@@ -73,3 +73,14 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// EstimateFisherInformation
+Rcpp::List EstimateFisherInformation(Rcpp::List input);
+RcppExport SEXP GHmixedeffect_EstimateFisherInformation(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type input(inputSEXP);
+    __result = Rcpp::wrap(EstimateFisherInformation(input));
+    return __result;
+END_RCPP
+}

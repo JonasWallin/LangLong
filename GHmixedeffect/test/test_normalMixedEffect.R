@@ -1,6 +1,7 @@
 ###
 # exmaple for testing estimation of random effect.
-# with both fixed and random effect
+# with both fixed and random effect,
+# and the distribution is normal
 ###
 library(GHmixedeffect)
 n.pers <- 100
@@ -34,5 +35,18 @@ input <- list(Y = Y_list,
               Niter = 100)
 res <- estimateME(input)
 print(res$mixedeffect$Sigma)
-print(res$mixedeffect$beta_random)
-print(res$mixedeffect$beta_fixed)
+cat('result :')
+cat("beta_random true = ", beta_r,'\n')
+cat("diff = ",res$mixedeffect$beta_random - beta_r,"\n")
+cat("beta_random true = ", beta_f,'\n')
+cat("diff = ",res$mixedeffect$beta_fixed - beta_f,'\n')
+
+res$Niter     <- 10
+res$nSim      <- 100
+res$nBurnin   <- 10
+res$Y         <- Y_list
+res$sigma_eps <- res$sigma_eps[length(res$sigma_eps)]
+res$meas_list <- res$measerror
+output <- EstimateFisherInformation(res)
+#output$mixedeffect$Cov_theta
+#output$measerror$Cov_theta

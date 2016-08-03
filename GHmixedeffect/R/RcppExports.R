@@ -25,3 +25,7 @@ estimateNIGnoise <- function(input) {
     .Call('GHmixedeffect_estimateNIGnoise', PACKAGE = 'GHmixedeffect', input)
 }
 
+EstimateFisherInformation <- function(input) {
+    .Call('GHmixedeffect_EstimateFisherInformation', PACKAGE = 'GHmixedeffect', input)
+}
+

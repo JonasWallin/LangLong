@@ -13,7 +13,15 @@ class MixedEffect {
   protected:
 
   public:
+  	int store_param; // store the parameter to list
+  	int vec_counter; // internal parameter counter
+    virtual void printIter(){}; //print iteration data
+    virtual void setupStoreTracj(const int Niter){}; // setups to store the tracjetory
+  	
+  	
   	int npars; // number of parameters
+  	
+  	
   	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
     Eigen::MatrixXd Sigma;
     int Sigma_epsilon;  // added for epsilon of normal noise to U to ensure Sigma pos def
@@ -43,12 +51,16 @@ class MixedEffect {
     					   const Eigen::VectorXd& ,
     					   const double,
     					   const double) = 0;
+    					   
+    // returns the gradient of all the parameters					   
+    virtual Eigen::VectorXd get_gradient() = 0;
     virtual void step_theta(double stepsize) = 0;
     /*
     	simulates from the prior distribution
-
+		putting into Y 
     */
-    virtual void simulate() = 0;
+    virtual void simulate()                                 = 0;
+    virtual void simulate(std::vector< Eigen::VectorXd > &) = 0;
     /*
     	clear gradient
     */
@@ -69,6 +81,11 @@ class NormalMixedEffect  : public MixedEffect{
     Eigen::VectorXd dSigma_vech;
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
+    
+    
+    Eigen::MatrixXd betaf_vec;
+    Eigen::MatrixXd betar_vec;
+    Eigen::MatrixXd Sigma_vec;
 
     Eigen::VectorXd grad_beta_r; // gradient for random intercept
     Eigen::VectorXd grad_beta_r2; //second gradient for random intercept
@@ -80,6 +97,8 @@ class NormalMixedEffect  : public MixedEffect{
     Eigen::MatrixXi D;
     Eigen::MatrixXd Dd;
 
+    void printIter(); //print iteration data
+    void setupStoreTracj(const int Niter); // setups to store the tracjetory
 
     NormalMixedEffect();
     void initFromList(Rcpp::List const &);
@@ -112,6 +131,7 @@ class NormalMixedEffect  : public MixedEffect{
     void step_beta_fixed(double stepsize);
     void step_beta_random(double stepsize);
     void simulate();
+    void simulate(std::vector< Eigen::VectorXd >  &);
 
     Rcpp::List toList();
     
@@ -120,6 +140,10 @@ class NormalMixedEffect  : public MixedEffect{
     	clear gradient
     */
 	void clear_gradient();
+	
+	
+    // returns the gradient of all the parameters					   
+    Eigen::VectorXd get_gradient();
 
 };
 
@@ -134,6 +158,14 @@ class NIGMixedEffect  : public MixedEffect{
     Eigen::VectorXd dSigma_vech;
     Eigen::MatrixXd ddSigma;
     Eigen::VectorXd Sigma_vech;
+    
+    
+    Eigen::MatrixXd betaf_vec;
+    Eigen::MatrixXd betar_vec;
+    Eigen::MatrixXd mu_vec;
+    Eigen::VectorXd nu_vec;
+    Eigen::MatrixXd Sigma_vec;
+    
 
 
     double  grad_nu; // gradient for shape parameter
@@ -185,12 +217,20 @@ class NIGMixedEffect  : public MixedEffect{
     void step_beta_random(double stepsize);
     Rcpp::List toList();
     void simulate();
+    void simulate(std::vector< Eigen::VectorXd > & );
+    
+    virtual void printIter(); //print iteration data
+    virtual void setupStoreTracj(const int Niter); // setups to store the tracjetory
 
 
     /*
     	clear gradient
     */
 	void clear_gradient();
+	
+	
+    // returns the gradient of all the parameters					   
+    Eigen::VectorXd get_gradient();
 
 };
 

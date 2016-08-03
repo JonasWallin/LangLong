@@ -167,7 +167,7 @@ Rcpp::List estimateME(Rcpp::List input)
       }
       mixobj->remove_inter(i, res);
 
-      if(meas_noise == "NIG")
+      if(meas_noise != "Normal")
       	errObj->sampleV(i, res);
       errObj->gradient(i, res);
     }
@@ -187,7 +187,7 @@ Rcpp::List estimateME(Rcpp::List input)
   }
   //mixobj.sampleU(0, Ys[0], 0);
   Rcpp::List output;
-  output["Y_list"]           = Ys_list;
+  output["Y_list"]      = Ys_list;
   output["beta"]        = mixobj->beta_random;
   output["sigma_eps"]   = errObj->sigma;
   output["mixedeffect"] = mixobj->toList();
@@ -293,4 +293,142 @@ Rcpp::List estimateNIGnoise(Rcpp::List input)
 	return(output);
 }
 
+
+/*
+	Function for estimating the Fisher information at \theta
+*/
+// [[Rcpp::export]]
+Rcpp::List EstimateFisherInformation(Rcpp::List input)
+{
+  int count =0;
+  Rcpp::List Ys_list = Rcpp::as< Rcpp::List > (input["Y"]);
+  int nobs = Ys_list.length();
+  std::vector< Eigen::VectorXd > Ys(nobs);
+
+
+  //        setting up measurement error            //
+  //************************************************//
+  //************************************************//
+  std::string meas_noise = "Normal";
+  if( input.containsElementNamed("meas_noise")){
+  	meas_noise = Rcpp::as< std::string  > (input["meas_noise"]);
+  }
+
+  MeasurementError *errObj;
+  if(meas_noise == "Normal"){
+    errObj = new GaussianMeasurementError;
+    errObj->sigma = input["sigma_eps"];
+  }else{
+    errObj = new NIGMeasurementError;
+    if( input.containsElementNamed("meas_list") == 0)
+      throw("in Rlink input list must contain list denoted meas_list! \n");
+    errObj->initFromList( Rcpp::as< Rcpp::List  >(input["measerror"]));
+  }
+  
+  //    end of measurement error setup              //
+  //************************************************//
+  //************************************************//
+
+
+
+  int Niter   = Rcpp::as< int  > (input["Niter"]);
+  int nSim    = Rcpp::as< int  > (input["nSim"]);
+  int nBurnin = Rcpp::as< int  > (input["nBurnin"]);
+  double n = 0;
+  // init data effect
+  for( List::iterator it = Ys_list.begin(); it != Ys_list.end(); ++it ) {
+    Ys[count] = Rcpp::as < Eigen::VectorXd >( it[0]);
+    n += Ys[count].size();
+    count++;
+  }
+
+  std::string noise;
+  if( input.containsElementNamed("noise"))
+      noise = Rcpp::as <std::string> (input["noise"]);
+  else
+     noise = "Normal";
+  // init mixed effect
+  MixedEffect *mixobj;
+
+  if(noise == "Normal")
+    mixobj = new NormalMixedEffect;
+  else
+    mixobj = new NIGMixedEffect;
+
+
+  mixobj->initFromList( Rcpp::as< Rcpp::List  >(input["mixedeffect"]));
+
+
+  Eigen::MatrixXd Egrad2;
+  Egrad2.setZero(mixobj->npars + errObj->npars, mixobj->npars + errObj->npars);
+  Eigen::VectorXd Egrad;
+  Egrad.setZero(mixobj->npars + errObj->npars);
+
+  for(int iter = 0; iter < Niter; iter++){
+
+	std::vector< Eigen::VectorXd > Y = errObj->simulate( Ys);
+	mixobj->simulate(Y);
+	for(int ii = 0; ii < nSim + nBurnin; ii++)
+	{
+    	for(int i =0; i < nobs; i++)
+    	{
+    
+    		Eigen::VectorXd  res = Y[i];
+      		mixobj->remove_cov(i, res);
+      		if(meas_noise == "Normal"){
+        		mixobj->sampleU( i, res, 2 * log(errObj->sigma));
+        		if(ii >= nBurnin)
+        			mixobj->gradient(i, res, 2 * log(errObj->sigma));
+      		}else{
+        		mixobj->sampleU2( i,
+                		         res,
+                        		 errObj->Vs[i].cwiseInverse(),
+                         		2 * log(errObj->sigma));
+                
+        		if(ii >= nBurnin)
+        			mixobj->gradient2(i,
+                          		res,
+                          		errObj->Vs[i].cwiseInverse(),
+                          		2 * log(errObj->sigma),
+                          		errObj->EiV);
+      		}
+      		mixobj->remove_inter(i, res);
+      		
+        	if(ii >= nBurnin){
+      			errObj->gradient(i, res);
+      			
+          		
+          	}
+      	}
+    
+    }
+    Eigen::VectorXd grad(mixobj->npars + errObj->npars);
+    grad.segment(0, mixobj->npars) = mixobj->get_gradient();
+    grad.segment(mixobj->npars, errObj->npars) = errObj->get_gradient();
+    grad.array() /= nSim;
+    Egrad2 += grad * grad.transpose();
+    Egrad += grad;
+    Rcpp::Rcout << "grad = " << grad.transpose() << "\n";
+    
+	mixobj->clear_gradient();
+	errObj->clear_gradient();
+  
+  }
+  Egrad2.array() /= Niter;
+  Egrad.array() /= Niter; 
+  Eigen::MatrixXd Vgrad = Egrad2 - Egrad * Egrad.transpose();
+  Eigen::MatrixXd invVgrad  = Vgrad.inverse();
+  mixobj->set_covariance(invVgrad.block(0, 0, mixobj->npars, mixobj->npars));
+  errObj->set_covariance(invVgrad.block(mixobj->npars, mixobj->npars, errObj->npars, errObj->npars));
+  Rcpp::Rcout << " std = " << Vgrad.diagonal().cwiseSqrt() << "\n";
+  Rcpp::List output;
+  output["Y_list"]      = Ys_list;
+  output["mixedeffect"] = mixobj->toList();
+  output["measerror"]   = errObj->toList();
+  
+  
+  delete mixobj;
+  delete errObj;
+  return(output);
+}
 

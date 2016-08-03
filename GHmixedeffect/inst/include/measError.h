@@ -11,7 +11,8 @@ class MeasurementError {
   protected:
 
   public:
-
+	int npars; // number of parameters
+  	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
    	double EV;  // if there the random variance in the Noise E[V]
     double EiV; // if there is random varoance in the noise E[V^-1]
   	double sigma;
@@ -24,8 +25,20 @@ class MeasurementError {
     virtual void sampleV(const int , const Eigen::VectorXd&, int = -1) = 0;
 
     // sampling from the prior model
-  	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >)  = 0;
+  	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd > )  = 0;
+    /*
+    	clear gradient
+    */
+	virtual void clear_gradient() = 0;
+    /*
+    	stores the covariance of the parameters 
+    */
+	void set_covariance(const Eigen::MatrixXd & Cov_in) {Cov_theta = Cov_in;};
 
+    /*
+     returns the gradient of all the parameters		
+      */			   
+    virtual Eigen::VectorXd get_gradient()  =0;
 
 };
 
@@ -44,6 +57,10 @@ class GaussianMeasurementError : public MeasurementError{
 		void sampleV(const int i, const Eigen::VectorXd& res, int n_s = -1) {};
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
+		
+		void clear_gradient();
+		
+		Eigen::VectorXd get_gradient();
 
 };
 
@@ -69,7 +86,10 @@ class NIGMeasurementError : public MeasurementError{
 		void sampleV(const int , const Eigen::VectorXd& , int = -1);
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
-
+		
+		void clear_gradient();
+		
+		Eigen::VectorXd get_gradient();
 };
 
 #endif
