@@ -78,14 +78,18 @@ predictLong <- function( Y,
         obs.ind  <- matrix(c(0,n.pred.i),nrow = 1,ncol = 2)
       }
 
-      obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]),
-                          Apred = inla.mesh.1d.A(operator_list$mesh1d, locs.pred[[i]]),
-                          Y=Y[[i]],
-                          pred_ind = pred.ind,
-                          obs_ind = obs.ind,
-                          locs = locs[[i]],
-                          Brandom_pred = Brandom.pred[[i]],
-                          Bfixed_pred = Bfixed.pred[[i]])
+      obs_list[[i]] <- list(A = spde.A(locs[[i]], operator_list$loc,
+                                       right.boundary = operator_list$right.boundary,
+                                       left.boundary = operator_list$left.boundary),
+                            Apred = spde.A(locs.pred[[i]],operator_list$loc,
+                                       right.boundary = operator_list$right.boundary,
+                                       left.boundary = operator_list$left.boundary),
+                            Y=Y[[i]],
+                            pred_ind = pred.ind,
+                            obs_ind = obs.ind,
+                            locs = locs[[i]],
+                            Brandom_pred = Brandom.pred[[i]],
+                            Bfixed_pred = Bfixed.pred[[i]])
   }
   input <- list( obs_list         = obs_list,
                  operator_list    = operator_list,

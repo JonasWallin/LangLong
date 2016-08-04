@@ -4,7 +4,6 @@
 #
 ####
 graphics.off()
-library(INLA)
 library(LANGlong)
 library(methods)
 

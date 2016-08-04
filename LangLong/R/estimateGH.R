@@ -1,13 +1,12 @@
-library(INLA)
 library(GHmixedeffect)
 
 #' @param   Y           - list with the observations
 #' @param   locs        - list with position of the observations (Y)
-#' @param mixedEffect_list -     
+#' @param mixedEffect_list -
 #' @param   meas_noise  - the aviable noise classes: Normal or NIG
 #' @param   noise       - the distribution of the mixed effect
 #' @param   B_random    - list for the random effect covariates (needs to be matrix, can be NULL)
-#' @param   B_fixed     - list for the fixed  effect covariates (needs to be matrix, can be NULL) 
+#' @param   B_fixed     - list for the fixed  effect covariates (needs to be matrix, can be NULL)
 #' @param   beta_random - initial parameters of the random effect (mean parameter) (if not specified set to zero)
 #' @param   beta_fixed  - initial parameters of the fixed  effect (if not specified set to zero)
 #' @param   Sigma       - initial parameters of the covariance of random effect (if not specified set to I )
@@ -15,24 +14,24 @@ library(GHmixedeffect)
 #' @param   mu          - shift parameter for noise (NIG only)
 #' @param   U           - (list) inital guess of the random effect
 #' @param   V           - (list) inital guess of the variance effect
-#' 
+#'
 #' @param measurment_list   - list for measurement error:
-#' @param     sigma       - measurement noise variance 
+#' @param     sigma       - measurement noise variance
 #' @param     nu          - shape parameter for noise (NIG only)
 #' @param     Vs          - (list) inital guess for the noise of the measurement
 #' @param operator_list   - list created using create_operator function!
-#' @param processes_list  - for the stochastic noise driving the 
+#' @param processes_list  - for the stochastic noise driving the
 #' @param noise           - either Normal, NIG or GAL (change name to type rather then noise)
 #' @param nu              - shape parameter for NIG or GAL
-#' @param mu              - assymetric parameter for NIG or GAL     
-#' 
+#' @param mu              - assymetric parameter for NIG or GAL
+#'
 #' @param step0           - stepsize for optimizer is step0 / i^alpha
 #' @param alpha           - stepsize for optimizer is step0 / i^alpha
 #' @param pSubsample      - precentage of data used in each gradient subsampling
 #' @param nIter           - number of iteration of the stochastic gradient
 #' @param nSim            - number of samples of the gibbs sampler to estimate the gradient
-#' @parma silent          - print iteration info              
-estimateLong <- function(Y, 
+#' @parma silent          - print iteration info
+estimateLong <- function(Y,
                          locs,
                          mixedEffect_list,
                          measurment_list,
@@ -49,10 +48,13 @@ estimateLong <- function(Y,
 {
   obs_list <- list()
   for(i in 1:length(locs))
-    obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]), 
-                          Y=Y[[i]], 
+    obs_list[[i]] <- list(A = spde.A(locs[[i]],
+                                     operator_list$loc,
+                                     right.boundary = operator_list$right.boundary,
+                                     left.boundary = operator_list$left.boundary),
+                          Y=Y[[i]],
                           locs = locs[[i]])
-  
+
   input <- list( obs_list         = obs_list,
                  operator_list    = operator_list,
                  measurementError_list  = measurment_list,
@@ -66,7 +68,7 @@ estimateLong <- function(Y,
                  step0            = step0,
                  alpha            = alpha
               )
-  
+
   output <- estimateLong_cpp(input)
   return(output)
 }
@@ -88,23 +90,23 @@ estimateLong <- function(Y,
 #' @param silent - print redsults
 #' @param V - list of inital guess of Variance components
 #' @param U - initaul guess of random intercept
-#' @param mixedEffectList - list contaning $B (mixed effects) 
+#' @param mixedEffectList - list contaning $B (mixed effects)
 #' @param Bmixed - the covariates for mixed effects (if mixeEffectList is not null, otherwise uses only mixed effects)
-#' @param operatorType - type of operator: 1) Matern 2) Finite Difference 
-#' 
-#' 
-estimateLongGH <- function(Y, 
-                           loc, 
-                           Bfixed       = NULL, 
+#' @param operatorType - type of operator: 1) Matern 2) Finite Difference
+#'
+#'
+estimateLongGH <- function(Y,
+                           loc,
+                           Bfixed       = NULL,
                            Brandom      = NULL,
-                           theta = NULL, 
-                           stepsize = 1e-2, 
-                           n = 100, 
-                           Niter = 100, 
+                           theta = NULL,
+                           stepsize = 1e-2,
+                           n = 100,
+                           Niter = 100,
                            burnin = 10,
                            long.percentage = 100,
                            commonsigma = TRUE, # only implimented right know
-                           nsim = 1, 
+                           nsim = 1,
                            noise  = c("Normal","NIG","GAL"),
                            mNoise = c("Normal", "NIG"),
                            mNoiseList = NULL,
@@ -122,19 +124,19 @@ estimateLongGH <- function(Y,
   mNoise    <- match.arg(mNoise)
   if(missing(Y))
     stop("Must supply data")
-  
+
   if(missing(loc))
     stop("Must supply list with locations")
-  
+
   if(is.null(mNoiseList))
     mNoiseList     <- MeasurementErrorInit(Y, mNoise)
-  
+
   if(is.null(mixedEffectList))
     mixedEffectList <- MixedInit(mixedType, B_fixed = Bfixed, B_random = Brandom)
-  
+
   operator_List <- create_operator(locs, n, name = operatorType)
   mesh1d <- operator_List$mesh1d
-  
+
   obs_ <- list()
   for(i in 1:length(locs))
   {
@@ -142,7 +144,7 @@ estimateLongGH <- function(Y,
   }
   Nlong = length(locs)
   Nlong = max(min(round(long.percentage*Nlong/100),Nlong),1)
-  
+
   if(is.null(V))
   {
     if(noise == "Normal"){
@@ -156,15 +158,15 @@ estimateLongGH <- function(Y,
         V[[i]] <- c(rep(1, length(operator_List$h)))
       }
     }
-        
+
   }
-  
+
   result$mixedEffect_list <- mixedEffectList
   result$MeasureError_list      <- mNoiseList
-    
+
   result$obs_list            <- obs_
   result$operator_list   <- operator_list
-  
+
   result$stepsize <- stepsize
   result$Niter    <- Niter
   result$nsim     <- nsim
@@ -182,7 +184,7 @@ estimateLongGH <- function(Y,
     result$processes_list$mu  <- 0.
   }
   result$processes_list$V_list     <- V
-  
+
   output <- estimateLong_cpp(result)
 
   return(output)
@@ -191,7 +193,7 @@ estimateLongGH <- function(Y,
 #' posterior samples generates mean and variance of X, and V
 #'
 #' @param output estimateLongGH
-#' 
+#'
 sample_posteriror<- function(output, sim = 100)
 {
   noise.i = 0
@@ -199,16 +201,16 @@ sample_posteriror<- function(output, sim = 100)
     noise.i = -1
   }else if(output$noise == "GAL"){
     noise.i = 1
-  } 
+  }
   sim_res <- samplePosteriorGH(output$obs_, output$operator_List, output$theta,output$mixedEffectList, output$theta$V, sim, noise.i,output$commonsigma)
   return(sim_res)
 }
 
 
-#' plot parameter tracjetories 
+#' plot parameter tracjetories
 #'
 #' @param output estimateLongGH
-#' 
+#'
 plotLongGh <-function(output, beta = c(1))
 {
   theta <- output$theta
@@ -217,30 +219,30 @@ plotLongGh <-function(output, beta = c(1))
   if(output$operator_List$type == 'matern')
     plot(theta$kappa_vec, main = expression(kappa))
   if(output$commonsigma == 1){
-    plot(theta$sigma_vec, main = expression(sigma))  
+    plot(theta$sigma_vec, main = expression(sigma))
   }else{
     plot(theta$asigma_vec, main = expression(asigma))
     plot(theta$bsigma_vec, main = expression(bsigma))
   }
-  
+
   plot(theta$tau_vec,   main = expression(tau))
-  
+
   if(output$noise != "Normal")
     plot(theta$lambda_vec,   main = expression(lambda))
-  
+
 }
 
 plottraj <- function(nr, output, samples)
 {
   X_mean <- samples$X_mean[[nr]]
   plot(output$operator_List$mesh1d$loc, X_mean, xlab = 't', ylab = 'X(t)', type = 'l')
-  
+
 }
 #' simualte from the prior model using output from parameter estimate
 #' @param output estimateLongGH
 sample_prior_from_result_LongGH <- function(output)
 {
   theta_in <- output$theta
-  theta_in$GAL <- result$GAL 
+  theta_in$GAL <- result$GAL
   return(simulateLongGH_cpp(output$obs_, output$operator_List, theta_in))
 }
