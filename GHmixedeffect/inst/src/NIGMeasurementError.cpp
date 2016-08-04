@@ -2,10 +2,25 @@
 #include "error_check.h"
 
 
+void NIGMeasurementError::printIter() 
+{
+	Rcpp::Rcout << "(sigma , nu)= " << sigma << " ," << nu;
+
+}
+void NIGMeasurementError::setupStoreTracj(const int Niter) // setups to store the tracjetory
+{
+	sigma_vec.resize(Niter);
+	nu_vec.resize(Niter);
+	vec_counter = 0;
+	store_param = 1;
+}
+
 
 
 
 NIGMeasurementError::NIGMeasurementError(){
+
+  store_param = 0;
   counter   = 0;
   sigma     = 1;
   nu        = 1;
@@ -27,6 +42,11 @@ Rcpp::List NIGMeasurementError::toList()
   out["Vs"]          = Vs;
   out["Cov_theta"]   = Cov_theta;
   out["noise"]       = noise;
+  
+  if(store_param){
+  	out["sigma_vec"] = sigma_vec;
+  	out["nu_vec"]    = nu_vec;
+  }
   return(out);
 }
 void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
@@ -128,6 +148,11 @@ void NIGMeasurementError::step_theta(double stepsize)
   step_nu(stepsize);
   clear_gradient();
   counter = 0;
+  
+if(store_param){
+  	sigma_vec[vec_counter] = sigma;
+  	nu_vec[vec_counter++] = nu;
+  }
 }
 
 void NIGMeasurementError::step_sigma(double stepsize)

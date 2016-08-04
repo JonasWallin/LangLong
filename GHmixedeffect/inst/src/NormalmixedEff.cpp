@@ -61,6 +61,15 @@ Rcpp::List NormalMixedEffect::toList()
   out["noise"]       = noise;
   out["Sigma_epsilon"]       = Sigma_epsilon;
   out["Cov_theta"]   = Cov_theta;
+  if(store_param){
+  if(Bf.size() > 0)
+	out["betaf_vec"] = betaf_vec;
+		
+   if(Br.size() > 0){
+		out["betar_vec"] = betar_vec;
+		out["Sigma_vec"] = Sigma_vec;
+	}
+  }
   return(out);
 }
 void NormalMixedEffect::initFromList(Rcpp::List const &init_list)

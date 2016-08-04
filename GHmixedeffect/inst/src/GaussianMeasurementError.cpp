@@ -3,6 +3,17 @@
 
 
 
+void GaussianMeasurementError::printIter() 
+{
+	Rcpp::Rcout << "sigma = " << sigma;
+
+}
+void GaussianMeasurementError::setupStoreTracj(const int Niter) // setups to store the tracjetory
+{
+	sigma_vec.resize(Niter);
+	vec_counter = 0;
+	store_param = 1;
+}
 
 
 GaussianMeasurementError::GaussianMeasurementError(){
@@ -14,15 +25,21 @@ GaussianMeasurementError::GaussianMeasurementError(){
   EiV = 1.; 
   noise = "Normal";
   npars = 1;
+  store_param = 0;
 } 
+
 Rcpp::List GaussianMeasurementError::toList()
 {
   Rcpp::List out;
   out["sigma"]  = sigma;
   out["noise"]  = noise;
   out["Cov_theta"]   = Cov_theta;
+  if(store_param)
+  	out["sigma_vec"] = sigma_vec;
+  
   return(out);
 }
+
 void GaussianMeasurementError::initFromList(Rcpp::List const &init_list)
 {
   if(init_list.containsElementNamed("sigma"))
@@ -55,6 +72,8 @@ void GaussianMeasurementError::step_theta(double stepsize)
   clear_gradient();
   counter = 0;
   ddsigma = 0;
+  if(store_param)
+  	sigma_vec[vec_counter++] = sigma;
 }
 
 

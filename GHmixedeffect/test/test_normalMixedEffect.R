@@ -25,21 +25,26 @@ for(i in 1:n.pers)
                               Br_list[[i]]%*%betar_list[[i]] + Bf_list[[i]]%*%beta_f,
                                sd = sd_Y)
 }
-
+meas_list <- list(sigma_eps <- 0.1, noise = "Normal")
+mixedEffect_list <- list(B_random = Br_list, 
+                         B_fixed  = Bf_list,
+                         Sigma = sd_beta*diag(2), 
+                         beta_random = c(0.,0.),
+                         noise = "Normal")
 input <- list(Y = Y_list, 
-              B_random = Br_list, 
-              B_fixed  = Bf_list,
-              Sigma = sd_beta*diag(2), 
-              beta_random = c(0.,0.), 
-              sigma_eps = 0.1,
+              mixedEffect_list = mixedEffect_list,
+              measurementError_list = meas_list,
+              nSim = 2,
+              alpha = 0.3,
+              step0 = 1,
               Niter = 100)
 res <- estimateME(input)
-print(res$mixedeffect$Sigma)
+print(res$mixedEffect_list$Sigma)
 cat('result :')
 cat("beta_random true = ", beta_r,'\n')
-cat("diff = ",res$mixedeffect$beta_random - beta_r,"\n")
+cat("diff = ",res$mixedEffect_list$beta_random - beta_r,"\n")
 cat("beta_random true = ", beta_f,'\n')
-cat("diff = ",res$mixedeffect$beta_fixed - beta_f,'\n')
+cat("diff = ",res$mixedEffect_list$beta_fixed - beta_f,'\n')
 
 res$Niter     <- 10
 res$nSim      <- 100

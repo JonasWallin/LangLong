@@ -11,6 +11,13 @@ class MeasurementError {
   protected:
 
   public:
+  
+  	int store_param; // store the parameter to list
+  	int vec_counter; // internal parameter counter
+    virtual void printIter(){}; //print iteration data
+    virtual void setupStoreTracj(const int Niter){}; // setups to store the tracjetory
+ 
+  
 	int npars; // number of parameters
   	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
    	double EV;  // if there the random variance in the Noise E[V]
@@ -47,7 +54,8 @@ class GaussianMeasurementError : public MeasurementError{
 	private:
 		double dsigma;
 		double ddsigma;
-    double counter;
+    	double counter;
+    	Eigen::VectorXd sigma_vec;
 
 	public:
 		GaussianMeasurementError();
@@ -61,6 +69,10 @@ class GaussianMeasurementError : public MeasurementError{
 		void clear_gradient();
 		
 		Eigen::VectorXd get_gradient();
+		
+		void printIter(); //print iteration data
+        void setupStoreTracj(const int ); // setups to store the tracjetory
+
 
 };
 
@@ -73,6 +85,8 @@ class NIGMeasurementError : public MeasurementError{
 		double ddnu;
 		gig rgig;
     	double counter;
+    	Eigen::VectorXd sigma_vec;
+    	Eigen::VectorXd nu_vec;
 
 	public:
 	  int common_V;
@@ -90,6 +104,10 @@ class NIGMeasurementError : public MeasurementError{
 		void clear_gradient();
 		
 		Eigen::VectorXd get_gradient();
+		
+		void printIter(); //print iteration data
+        void setupStoreTracj(const int ); // setups to store the tracjetory
+
 };
 
 #endif

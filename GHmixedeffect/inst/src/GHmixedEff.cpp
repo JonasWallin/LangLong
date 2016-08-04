@@ -56,6 +56,18 @@ Rcpp::List NIGMixedEffect::toList()
   out["noise"]       = noise;
   out["Sigma_epsilon"]       = Sigma_epsilon;
   out["Cov_theta"]   = Cov_theta;
+  if(store_param){
+  	if(Bf.size() > 0)
+		 out["betaf_vec"] = betaf_vec;
+		
+	if(Br.size() > 0){
+		out["betar_vec"] = betar_vec;
+		out["mu_vec"]    = mu_vec;
+		out["Sigma_vec"] = Sigma_vec;
+		out["nu_vec"]    = nu_vec;
+	}
+  
+  }
   return(out);
 }
 void NIGMixedEffect::initFromList(Rcpp::List const &init_list)

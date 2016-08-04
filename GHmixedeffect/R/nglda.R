@@ -1,8 +1,8 @@
 
-nglda <- function(fixed, random, timeVar, data = NULL, 
-                  reffects = "NIG", process = "NIG", error = "NIG", 
-                  initials = list(), tolerance = 10^-5,
-                  Niter = 1000, silent = TRUE){
+nglda <- function(fixed, random, data = NULL, 
+                  reffects = "NIG",  error = "NIG", 
+                  initials = list(), alpha = 0.1, step0 = 0.33, 
+                  Niter = 1000, nSim = 2, silent = TRUE){
   
   #fixed: two sided formula for fixed effects
   #random: one sided formula for random effects (id will be included in this formula)
@@ -15,9 +15,9 @@ nglda <- function(fixed, random, timeVar, data = NULL,
   #initials: a list for initial values
   #tolerance: tolerance value to stop the stochastic gradient algorithm - i am not sure what is the stopping rule at the moment
   #Niter: number of iterations for the Stochastic gradient algorithm
+  #nSim: number of Gibbs sample in each iteration
   #silent: if FALSE, details of the stochastic gradient are printed when the algorithm is running
   
-  #timeVar: week_list in JW code, but seems unused
   #nGibbs: Niter in JW code
   #reffects: noise in JW code, alternative is Normal
   #error: meas_noise in JW code, alternative is Normal
@@ -68,23 +68,26 @@ nglda <- function(fixed, random, timeVar, data = NULL,
   meas_list <-   list(Vs=Vin, sigma = initials$meas_list[[1]], nu = initials$meas_list[[2]])
   nu = initials$nu
   mu = initials$mu
-
+  meas_list$sigma_eps <- sigma_eps
+  meas_list$noise <- error
+  mixedEffect_list <- list(B_fixed     = DM_fixed, 
+                           B_random    = DM_random, 
+                           Sigma       = Sigma,
+                           beta_random = beta_random,
+                           noise       = reffects,
+                           nu          = nu,
+                           mu          = mu
+                           )
   input <- list(Y = YM, 
-              B_fixed     = DM_fixed, 
-              B_random    = DM_random, 
-              Sigma       = Sigma,
-              beta_random = beta_random,
-              sigma_eps   = sigma_eps,
               Niter       = Niter,
+              nSim        = nSim,
               meas_noise  = error,
-              nu          = nu,
-              mu          = mu,
-              noise       = reffects,
-              meas_list   = meas_list)
+              alpha       = alpha,
+              step0       = step0,
+              mixedEffect_list        = mixedEffect_list,
+              measurementError_list   = meas_list)
   res_m <- estimateME(input)
-  res_m
+  return(res_m)
 
-#print(res_m$beta)
-#print(res_m$mixedeffect$Sigma)
 
 }
