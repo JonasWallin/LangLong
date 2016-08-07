@@ -83,5 +83,9 @@ Rcpp::List constMatrix::output_list()
   Rcpp::List  List;
   List["tau"] = tau;
   List["tauVec"] = tauVec;
+  List["Q"] = Q;
+  List["loc"] = loc;
+  List["nIter"] = tauVec.size();
+  List["h"] = h;
   return(List);
 }

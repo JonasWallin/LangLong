@@ -130,7 +130,7 @@ create_matrices_FD2 <- function(locs, n,right.boundary = 'neumann',left.boundary
     }
   }
   P <- seq(min_l, max_l, length.out = n)
-  mesh1d <- inla.mesh.1d(P)
+
   vec_toeplitz <- rep(0, length=n)
   h <- (P[2] - P[1])
   vec_toeplitz[1] <- -1 / h # -1/h
@@ -140,10 +140,9 @@ create_matrices_FD2 <- function(locs, n,right.boundary = 'neumann',left.boundary
   Operator_2D <- (h*Operator_1D) %*% Operator_1D #mult with h for the first operator is scaled
   # due to W(t+h) - W(t) = N(0,h), not (W(t+h) - W(t))/h = N(0,h)
   operator_List <- list(type   = 'fd2',
-                        mesh1d = mesh1d,
                         Q      = as(Operator_2D, "dgCMatrix"),
                         h      = rep(h, n),
-                        loc   = mesh1d$loc,
+                        loc   = P,
                         right.boundary = 'neumann',
                         left.boundary='neumann')
   return(operator_List)

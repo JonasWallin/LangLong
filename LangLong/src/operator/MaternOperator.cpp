@@ -76,6 +76,10 @@ Rcpp::List MaternOperator::output_list()
   List["kappa"] = kappa;
   List["tauVec"] = tauVec;
   List["kappaVec"] = kappaVec;
+  List["G"] = G;
+  List["C"] = C;
+  List["nIter"] = tauVec.size();
+  List["use.chol"] = use_chol;
   return(List);
 }
 
