@@ -67,6 +67,7 @@ List predictLong_cpp(Rcpp::List in_list)
   }
   Rcpp::List operator_list  = Rcpp::as<Rcpp::List> (in_list["operator_list"]);
   std::string type_operator = Rcpp::as<std::string>(operator_list["type"]);
+  operator_list["nIter"] = 1;
   operatorMatrix* Kobj;
   //Kobj = new MaternMatrixOperator;
   operator_select(type_operator, &Kobj);
@@ -273,6 +274,9 @@ List predictLong_cpp(Rcpp::List in_list)
         }
         // save samples
         if(ii >= nBurnin){
+          if(silent == 0){
+            Rcpp::Rcout << " save samples << " << i << ", " << ipred << ", " << ii << "\n";
+          }
           Eigen::SparseMatrix<double,0,int> Ai = As_pred[i];
           Ai = Ai.middleRows(pred_ind[i](ipred,0),pred_ind[i](ipred,1));
           Eigen::VectorXd random_effect = Bfixed_pred[i]*mixobj->beta_fixed;

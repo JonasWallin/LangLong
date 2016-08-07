@@ -72,6 +72,7 @@ void MaternOperator::set_matrices()
 Rcpp::List MaternOperator::output_list()
 {
   Rcpp::List  List;
+  List["type"] = "Matern";
   List["tau"] = tau;
   List["kappa"] = kappa;
   List["tauVec"] = tauVec;

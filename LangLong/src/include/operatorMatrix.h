@@ -74,6 +74,7 @@ class constMatrix : public operatorMatrix{
 class fd2Operator : public constMatrix {
 
 public:
+  Rcpp::List output_list();
   double trace_variance( const Eigen::SparseMatrix<double,0,int> & ) ;
 };
 

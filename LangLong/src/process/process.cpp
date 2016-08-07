@@ -30,15 +30,15 @@ void GaussianProcess::initFromList(const Rcpp::List & init_list,const Eigen::Vec
     	Xs[i] = Rcpp::as<Eigen::VectorXd>( X_list[i]);
     	Vs[i] = h;
   	}
-  	
-  
-  
+
+
+
 }
 
 void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd & h_in)
 {
   h = h_in;
-  h2 = h.cwiseProduct(h); 
+  h2 = h.cwiseProduct(h);
   h_sum = h.sum();
   h_min = h.minCoeff();
   h3_mean = h.array().pow(3).sum()/h.size();
@@ -49,28 +49,28 @@ void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd
   nindv = X_list.length();
   Xs.resize(nindv);
   Vs.resize(nindv);
-  for(int i = 0; i < nindv; i++ ){ 
-      
+  for(int i = 0; i < nindv; i++ ){
+
     	Xs[i] = Rcpp::as<Eigen::VectorXd>( X_list[i]);
     	//Vs[i] = h;
       	Vs[i] = Rcpp::as<Eigen::VectorXd>( V_list[i]);
   	}
-  	
+
   	mu = Rcpp::as< double > (init_list["mu"]);
   	nu = Rcpp::as< double > (init_list["nu"]);
-  	
+
   	type_process = Rcpp::as<std::string> (init_list["noise"]);
   	dmu  = 0;
-  	
+
   	EV = h;
   	update_nu();
   	counter = 0;
   	store_param = 0;
-  	
+
 }
 
 
-void GaussianProcess::sample_X(const int i, 
+void GaussianProcess::sample_X(const int i,
               Eigen::VectorXd & Z,
               const Eigen::VectorXd & Y,
               const Eigen::SparseMatrix<double,0,int> & Q,
@@ -88,7 +88,7 @@ void GaussianProcess::sample_X(const int i,
 
 
 
-void GHProcess::sample_X(const int i,  
+void GHProcess::sample_X(const int i,
               Eigen::VectorXd & Z,
               const Eigen::VectorXd & Y,
               const Eigen::SparseMatrix<double,0,int> & Q,
@@ -110,7 +110,7 @@ void GHProcess::sample_X(const int i,
   Xs[i] = solver.rMVN(b, Z);
 }
 
-void GaussianProcess::sample_Xv2( const int i, 
+void GaussianProcess::sample_Xv2( const int i,
               Eigen::VectorXd & Z,
               const Eigen::VectorXd & Y,
               const Eigen::SparseMatrix<double,0,int> & Q,
@@ -141,7 +141,7 @@ void GHProcess::sample_Xv2(  const int i,
 	iV = Vs[i].cwiseInverse();
   double sigma2  =pow(sigma, 2);
   Eigen::SparseMatrix<double,0,int> Qi = Q + (A.transpose()*iV_noise.asDiagonal()*A)/ sigma2;
-  
+
 
   solver.compute(Qi);
   Eigen::VectorXd b = A.transpose()* (iV_noise.cwiseProduct(Y) )/ sigma2;
@@ -153,17 +153,17 @@ void GHProcess::sample_Xv2(  const int i,
    Xs[i] =solver.rMVN(b, Z);
 }
 
-void GHProcess::sample_V(const int i , 
+void GHProcess::sample_V(const int i ,
     					              gig & rgig,
                             const Eigen::SparseMatrix<double,0,int> & K)
-{ 
+{
  	Vs[i] = sampleV_post(rgig,
-                 h, 
+                 h,
                  K * Xs[i],
                  1.,
-                 mu, 
-                 nu, 
-                 type_process); 
+                 mu,
+                 nu,
+                 type_process);
 
 }
 
@@ -174,25 +174,25 @@ void GHProcess::gradient( const int i ,
 			   			  const Eigen::VectorXd& res,
 			   			  const double sigma,
 			   			  const double trace_var)
-{ 
-	
+{
+
   	counter++;
-	if( type_process == "NIG"){ 
+	if( type_process == "NIG"){
 		gradient_mu_centered(i, K);
 	}else if(type_process=="GAL"){
   	iV = Vs[i].cwiseInverse();
 		    Eigen::VectorXd temp_1  =  Vs[i];
 		    temp_1 -= h;
-		    
-		    
+
+
 		    Eigen::SparseLU< Eigen::SparseMatrix<double,0,int> > LU(K);  // performs a LU factorization of K
       		temp_1 = LU.solve(temp_1);         // use the factorization to solve for the given right hand side
       		Eigen::VectorXd temp_2 = A * temp_1;
-      		
+
       		 Eigen::VectorXd temp_3 = - A * Xs[i];
-      		
+
       		temp_3 += res;
-      		
+
       		dmu    += temp_2.dot(temp_3) / pow(sigma,2);
       		ddmu_1 -= Vv_mean * (trace_var / pow(sigma, 2));
 	}
@@ -207,18 +207,18 @@ void GHProcess:: gradient_v2( const int i ,
 			   			  const Eigen::VectorXd& iV_noise,
 			   			  const double EiV_noise,
 			   			  const double trace_var)
-{ 
-	
+{
+
   	counter++;
-  	
-	if( type_process == "NIG"){ 
+
+	if( type_process == "NIG"){
 		gradient_mu_centered(i, K);
 	}else if(type_process=="GAL"){
 			iV = Vs[i].cwiseInverse();
 		    Eigen::VectorXd temp_1  =  Vs[i];
 		    temp_1 -= h;
-		    
-		    
+
+
 		    Eigen::SparseLU< Eigen::SparseMatrix<double,0,int> > LU(K);  // performs a LU factorization of K
       		temp_1 = LU.solve(temp_1);         // use the factorization to solve for the given right hand side
       		Eigen::VectorXd temp_2 = A * temp_1;
@@ -238,9 +238,9 @@ void GHProcess::gradient_mu_centered(const int i, const Eigen::SparseMatrix<doub
 		iV = Vs[i].cwiseInverse();
 		Eigen::VectorXd temp_1  =  - h;
   		temp_1 = temp_1.cwiseProduct(iV);
-  	
+
   		temp_1.array() += 1.;
-  	
+
 		Eigen::VectorXd temp_2;
 		Eigen::VectorXd temp_3 =  Vs[i] ;
   		temp_3 -= h;
@@ -262,19 +262,19 @@ void GHProcess::grad_nu(const int i)
     temp.array() = Vs[i].array().log();
 		dnu  +=  h_sum * (1. + log(nu)) + h.dot(temp) - Vs[i].sum() - h_digamma;
 	}
-	
+
 }
 
 
 void GHProcess::step_theta(const double stepsize)
 {
-	step_mu(stepsize);	
+	step_mu(stepsize);
 	step_nu(stepsize);
 	counter = 0;
-	
+
 	if(store_param)
 	{
-		mu_vec[vec_counter] = mu; 
+		mu_vec[vec_counter] = mu;
 		nu_vec[vec_counter] = nu;
 		vec_counter++;
 	}
@@ -282,7 +282,7 @@ void GHProcess::step_theta(const double stepsize)
 
 void GHProcess::step_mu(const double stepsize)
 {
-	mu -= (stepsize / ddmu_1 ) * dmu; 
+	mu -= (stepsize / ddmu_1 ) * dmu;
 	dmu = 0;
 	ddmu_1 = 0;
 	ddmu_2 = 0;
@@ -305,10 +305,10 @@ void GHProcess::step_nu(const double stepsize)
     nu_temp = nu - stepsize_temp * dnu;
     stepsize_temp *= 0.5;
     if(stepsize_temp <= 1e-16)
-        throw("in GHProcess:: can't make nu it positive \n");   
+        throw("in GHProcess:: can't make nu it positive \n");
   }
   nu = nu_temp;
-  
+
   update_nu();
 }
 
@@ -335,13 +335,14 @@ Rcpp::List GHProcess::toList()
   out["mu"]     = mu;
   out["X"]      = Xs;
   out["V"]      = Vs;
-  
+  out["noise"]  = type_process;
+
   if(store_param)
   {
   	out["mu_vec"]     = mu_vec;
   	out["nu_vec"]     = nu_vec;
   }
-  
+
   return(out);
 }
 
@@ -350,6 +351,7 @@ Rcpp::List GaussianProcess::toList()
   Rcpp::List out;
   out["X"] = Xs;
   out["V"] = Vs;
+  out["noise"]  = "Normal";
   return(out);
 }
 
@@ -358,19 +360,19 @@ void GHProcess::update_nu()
 
   	dnu  = 0;
   	ddnu = 0;
-  
+
   if(type_process == "NIG")
   	{
-  		
+
   		EiV=  h2.cwiseInverse();
       	EiV *=  1./pow(nu, 2);
   		EiV += h.cwiseInverse();
-      
+
   		Vv_mean  = h_sum / (pow(nu, 2) * h.size());
   	}else if(type_process == "GAL"){
   		h_digamma  = 0;
   		h_trigamma = 0;
-  		
+
   		for(int i =0; i < h.size() ; i++){
   			double h_nu =  h[i] * nu;
   			h_digamma  += h[i]  * Digamma( h_nu);
@@ -385,8 +387,8 @@ void GHProcess::update_nu()
   			EiV.setOnes(h.size());
   			EiV.array() *= std::numeric_limits<double>::infinity();
   		}
-  			
-  	
+
+
   	}
   	H_mu =  (EV.sum() - EiV.dot(h2));
 }

@@ -1,5 +1,6 @@
 #' @param   Y           - list with the observations
 #' @param   locs        - list with positions of the observations (Y)
+#' @param   pInd        - indices of longitudinal samples to do prediction for
 #' @param   locs.pred   - list with positions to predict
 #' @param   Brandom.pred - random effect covaraites at prediction locations
 #' @param   Bfixed.pred  - fixed effect covaraites at prediction locations
@@ -34,6 +35,7 @@
 #' @parma silent          - print iteration info
 predictLong <- function( Y,
                          locs,
+                         pInd,
                          locs.pred,
                          Brandom.pred,
                          Bfixed.pred,
@@ -57,6 +59,20 @@ predictLong <- function( Y,
     stop('Type needs to be either Filter or Smoothing.')
   }
   obs_list <- list()
+
+  if(!missing(pInd) && !is.null(pInd)){
+    Y                   <- Y[pInd]
+    locs                <- locs[pInd]
+    locs.pred           <- locs.pred[pInd]
+    Brandom.pred        <- Brandom.pred[pInd]
+    Bfixed.pred         <- Bfixed.pred[pInd]
+    measurment_list$Vs  <- measurment_list$Vs[pInd]
+    mixedEffect_list$Bf <- mixedEffect_list$Bf[pInd]
+    mixedEffect_list$Br <- mixedEffect_list$Br[pInd]
+    mixedEffect_list$U  <- mixedEffect_list$U
+    processes_list$X    <- processes_list$X[pInd]
+    processes_list$V    <- processes_list$V[pInd]
+  }
 
   for(i in 1:length(locs)){
     n.pred.i = length(locs[[i]])
