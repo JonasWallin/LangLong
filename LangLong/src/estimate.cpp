@@ -93,24 +93,9 @@ List estimateLong_cpp(Rcpp::List in_list)
     mixobj = new NormalMixedEffect;
 	else
 		mixobj   = new NIGMixedEffect;
-
+	
 	mixobj->initFromList(mixedEffect_list);
-
-  Eigen::MatrixXd muVec_mixed;
-	Eigen::MatrixXd betarVec_mixed;
-  Eigen::MatrixXd betafVec_mixed;
-  Eigen::VectorXd nuVec_mixed;
-  Eigen::MatrixXd SigmaVec_mixed;
-  if(mixobj->Br.size() > 0){
-    if(type_mixedEffect == "NIG"){
-      muVec_mixed.resize(nIter, mixobj->Br[0].cols());
-  		nuVec_mixed.resize(nIter);
-    }
-    betarVec_mixed.resize(nIter, mixobj->Br[0].cols());
-    SigmaVec_mixed.resize(nIter, mixobj->Br[0].cols() * mixobj->Br[0].cols());
-  }
-  if(mixobj->Bf.size() > 0)
-    betafVec_mixed.resize(nIter, mixobj->Bf[0].cols());
+	mixobj->setupStoreTracj(nIter);
 
   //**********************************
 	// measurement setup
@@ -166,22 +151,9 @@ List estimateLong_cpp(Rcpp::List in_list)
     if(silent == 0){
       Rcpp::Rcout << "i = " << iter << ": \n";
       process->printIter();
-
-      if(mixobj->Br.size() > 0)
-        Rcpp::Rcout << "mixObj->beta_r = " << mixobj->beta_random.transpose() << "\n";
-
-      if(mixobj->Bf.size() > 0)
-        Rcpp::Rcout << "mixObj->beta_f = " << mixobj->beta_fixed.transpose() << "\n";
-
-      if(mixobj->Br.size() > 0)
-        Rcpp::Rcout << "mixObj->Sigma = \n" << mixobj->Sigma << "\n";
-
-      Rcpp::Rcout << "errObj->sigma = " << errObj->sigma << "\n";
-
-      if(type_MeasurementError != "Normal")
-        Rcpp::Rcout << "errObj->nu = " << ((NIGMeasurementError*) errObj)->nu << "\n";
-
       Kobj->print_parameters();
+      mixobj->printIter();
+      errObj->printIter();
     }
 
     Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);
@@ -305,26 +277,10 @@ List estimateLong_cpp(Rcpp::List in_list)
     }
     //**********************************
 	  // storing the parameter traces
-		//***********************************
-
-    if(iter >= nBurnin)
-    {
-      if(mixobj->Br.size() > 0){
-        if(type_mixedEffect != "Normal"){
-          muVec_mixed.row(iter - nBurnin) = ((NIGMixedEffect*) mixobj)->mu;
-          nuVec_mixed(iter - nBurnin)     = ((NIGMixedEffect*) mixobj)->nu;
-    	  }
-        betarVec_mixed.row(iter - nBurnin) = mixobj->beta_random;
-        SigmaVec_mixed.row(iter - nBurnin) = Eigen::Map<Eigen::VectorXd>(mixobj->Sigma.data(),
-                             mixobj->Sigma.rows()*mixobj->Sigma.cols());
-
-      }
-      if(mixobj->Bf.size() > 0)
-  		  betafVec_mixed.row(iter - nBurnin) = mixobj->beta_fixed;
-    }
+		//**********************************
   }
-
-  Rcpp::Rcout << "Done, storing results\n";
+  if(silent == 0)
+  	Rcpp::Rcout << "Done, storing results\n";
   // storing the results
   Rcpp::List out_list;
   out_list["pSubsample"]       = pSubsample;
@@ -340,19 +296,6 @@ List estimateLong_cpp(Rcpp::List in_list)
 
 
   Rcpp::List mixobj_list       = mixobj->toList();
-  if(mixobj->Br.size() > 0){
-    if(type_mixedEffect != "Normal"){
-      mixobj_list["muVec"]    = muVec_mixed;
-      mixobj_list["nuVec"]    = nuVec_mixed;
-    }
-      mixobj_list["betarVec"] = betarVec_mixed;
-      mixobj_list["SigmaVec"] = SigmaVec_mixed;
-  }
-
-  if(mixobj->Bf.size() > 0)
-    	mixobj_list["betafVec"] = betafVec_mixed;
-
-
   out_list["mixedEffect_list"] = mixobj_list;
 
   //Rcpp:Rcout << errObj->nu_vec << "\n";
