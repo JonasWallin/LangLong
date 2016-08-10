@@ -11,13 +11,13 @@ class MeasurementError {
   protected:
 
   public:
-  
+
   	int store_param; // store the parameter to list
   	int vec_counter; // internal parameter counter
     virtual void printIter(){}; //print iteration data
-    virtual void setupStoreTracj(const int Niter){}; // setups to store the tracjetory
- 
-  
+    virtual void setupStoreTracj(const int Niter) = 0; // setups to store the tracjetory
+
+
 	int npars; // number of parameters
   	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
    	double EV;  // if there the random variance in the Noise E[V]
@@ -38,13 +38,13 @@ class MeasurementError {
     */
 	virtual void clear_gradient() = 0;
     /*
-    	stores the covariance of the parameters 
+    	stores the covariance of the parameters
     */
 	void set_covariance(const Eigen::MatrixXd & Cov_in) {Cov_theta = Cov_in;};
 
     /*
-     returns the gradient of all the parameters		
-      */			   
+     returns the gradient of all the parameters
+      */
     virtual Eigen::VectorXd get_gradient()  =0;
 
 };
@@ -65,11 +65,11 @@ class GaussianMeasurementError : public MeasurementError{
 		void sampleV(const int i, const Eigen::VectorXd& res, int n_s = -1) {};
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
-		
+
 		void clear_gradient();
-		
+
 		Eigen::VectorXd get_gradient();
-		
+
 		void printIter(); //print iteration data
         void setupStoreTracj(const int ); // setups to store the tracjetory
 
@@ -100,11 +100,11 @@ class NIGMeasurementError : public MeasurementError{
 		void sampleV(const int , const Eigen::VectorXd& , int = -1);
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
-		
+
 		void clear_gradient();
-		
+
 		Eigen::VectorXd get_gradient();
-		
+
 		void printIter(); //print iteration data
         void setupStoreTracj(const int ); // setups to store the tracjetory
 

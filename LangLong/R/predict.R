@@ -67,15 +67,27 @@ predictLong <- function( Y,
     Brandom.pred        <- Brandom.pred[pInd]
     Bfixed.pred         <- Bfixed.pred[pInd]
     measurment_list$Vs  <- measurment_list$Vs[pInd]
-    mixedEffect_list$Bf <- mixedEffect_list$Bf[pInd]
-    mixedEffect_list$Br <- mixedEffect_list$Br[pInd]
+    mixedEffect_list$B_fixed <- mixedEffect_list$B_fixed[pInd]
+    mixedEffect_list$B_random <- mixedEffect_list$B_random[pInd]
     mixedEffect_list$U  <- mixedEffect_list$U
     processes_list$X    <- processes_list$X[pInd]
     processes_list$V    <- processes_list$V[pInd]
+    n.patient = length(pInd)
+  } else {
+    if(is.list(Y)){
+      n.patient = length(Y)
+    } else {
+      n.patient = 1
+    }
   }
 
-  for(i in 1:length(locs)){
-    n.pred.i = length(locs[[i]])
+  for(i in 1:n.patient){
+    if(is.list(locs)){
+      n.pred.i = length(locs[[i]])
+    } else {
+      n.pred.i = length(locs)
+    }
+
     if(type == "Filter"){
         pred.ind <- matrix(nrow = n.pred.i,ncol = 2)
         obs.ind  <- matrix(nrow = n.pred.i,ncol = 2)

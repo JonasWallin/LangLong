@@ -124,6 +124,7 @@ List estimateLong_cpp(Rcpp::List in_list)
     errObj = new NIGMeasurementError;
 
   errObj->initFromList(measurementError_list);
+  errObj->setupStoreTracj(nIter);
 
 	//**********************************
 	// stochastic processes setup
@@ -139,6 +140,7 @@ List estimateLong_cpp(Rcpp::List in_list)
   }else{ process  = new GaussianProcess;}
 
   process->initFromList(processes_list, h);
+  process->setupStoreTracj(nIter);
   /*
   Simulation objects
   */
@@ -353,6 +355,7 @@ List estimateLong_cpp(Rcpp::List in_list)
 
   out_list["mixedEffect_list"] = mixobj_list;
 
+  //Rcpp:Rcout << errObj->nu_vec << "\n";
   Rcpp::List errobj_list            = errObj->toList();
   out_list["measurementError_list"] = errobj_list;
 
