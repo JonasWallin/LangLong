@@ -1,4 +1,5 @@
 ###
+# TODO: create a testthat version of this some how
 # exmaple for testing estimation of random effect.
 # with both fixed and random effect
 ###

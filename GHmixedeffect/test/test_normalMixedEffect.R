@@ -3,6 +3,7 @@
 # with both fixed and random effect,
 # and the distribution is normal
 ###
+library(testthat)
 library(GHmixedeffect)
 n.pers <- 100
 n.obs  <- 10
@@ -40,11 +41,19 @@ input <- list(Y = Y_list,
               Niter = 100)
 res <- estimateME(input)
 print(res$mixedEffect_list$Sigma)
-cat('result :')
-cat("beta_random true = ", beta_r,'\n')
-cat("diff = ",res$mixedEffect_list$beta_random - beta_r,"\n")
-cat("beta_random true = ", beta_f,'\n')
-cat("diff = ",res$mixedEffect_list$beta_fixed - beta_f,'\n')
+test_that("simple Gaussian-Gaussian random",
+          {
+            expect_equal(res$mixedEffect_list$beta_random, beta_r, tolerance  = 0.1)
+          })
+test_that("simple Gaussian-Gaussian fixed",
+{
+  expect_equal(res$mixedEffect_list$beta_fixed, beta_f, tolerance  = 0.1)
+})
+#cat('result :')
+#cat("beta_random true = ", beta_r,'\n')
+#cat("diff = ",res$mixedEffect_list$beta_random - beta_r,"\n")
+#cat("beta_random true = ", beta_f,'\n')
+#cat("diff = ",res$mixedEffect_list$beta_fixed - beta_f,'\n')
 
 res$Niter     <- 10
 res$nSim      <- 100
