@@ -17,6 +17,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// estimateFisher
+List estimateFisher(Rcpp::List in_list);
+RcppExport SEXP LANGlong_estimateFisher(SEXP in_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type in_list(in_listSEXP);
+    __result = Rcpp::wrap(estimateFisher(in_list));
+    return __result;
+END_RCPP
+}
 // predictLong_cpp
 List predictLong_cpp(Rcpp::List in_list);
 RcppExport SEXP LANGlong_predictLong_cpp(SEXP in_listSEXP) {

@@ -5,6 +5,7 @@ using namespace std;
 
 void constMatrix::initFromList(Rcpp::List const & init_list)
 {
+	npars  = 1;
  std::vector<std::string> check_names =  {"Q","loc", "h"};
   check_Rcpplist(init_list, check_names, "constMatrix::initFromList");
   Q  = Rcpp::as<Eigen::SparseMatrix<double,0,int> >(init_list["Q"]);
@@ -76,6 +77,8 @@ void constMatrix::step_theta(const double stepsize)
 	tauVec[counter] = tau;
 
 	counter++;
+	clear_gradient();
+	ddtau  = 0;
 }
 
 Rcpp::List constMatrix::output_list()
@@ -87,5 +90,6 @@ Rcpp::List constMatrix::output_list()
   List["loc"] = loc;
   List["nIter"] = tauVec.size();
   List["h"] = h;
+  List["Cov_theta"]   = Cov_theta;
   return(List);
 }

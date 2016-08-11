@@ -18,6 +18,7 @@ double Trigamma(double x)
 
 void GaussianProcess::initFromList(const Rcpp::List & init_list,const Eigen::VectorXd & h_in)
 {
+  npars = 0;
   h = h_in;
   iV = h.cwiseInverse();
   std::vector<std::string> check_names =  {"X"};
@@ -35,8 +36,27 @@ void GaussianProcess::initFromList(const Rcpp::List & init_list,const Eigen::Vec
 
 }
 
+void GaussianProcess::simulate(const int i,
+  		                         Eigen::VectorXd & Z,
+			                         const Eigen::SparseMatrix<double,0,int> & A, 
+                               const Eigen::SparseMatrix<double,0,int> & K,
+			                         Eigen::VectorXd& Y,
+        cholesky_solver       & solver)
+{
+	Eigen::SparseMatrix<double,0,int> Q = Eigen::SparseMatrix<double,0,int>(K.transpose());
+    Q =  Q * iV.asDiagonal();
+    Q =  Q * K;
+    
+    Eigen::VectorXd b;
+    b.setZero(K.rows());
+  	Xs[i] = solver.rMVN(b, Z);
+	Y += A * Xs[i];
+
+}
+
 void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd & h_in)
 {
+  npars = 2;
   h = h_in;
   h2 = h.cwiseProduct(h);
   h_sum = h.sum();
@@ -68,7 +88,6 @@ void GHProcess::initFromList(const Rcpp::List & init_list,const  Eigen::VectorXd
   	store_param = 0;
 
 }
-
 
 void GaussianProcess::sample_X(const int i,
               Eigen::VectorXd & Z,
@@ -109,6 +128,28 @@ void GHProcess::sample_X(const int i,
   b +=  K.transpose() * temp;
   Xs[i] = solver.rMVN(b, Z);
 }
+
+	//simulate from prior distribution
+void GHProcess::simulate(const int i,
+			  Eigen::VectorXd & Z,
+			  const Eigen::SparseMatrix<double,0,int> & A, 
+              const Eigen::SparseMatrix<double,0,int> & K,
+			  Eigen::VectorXd& Y,
+			  cholesky_solver  &  solver)
+{
+ 
+  Z *= Vs[i].cwiseSqrt();
+  for(int ii = 0; ii < Z.size(); ii++)
+  	Z[ii] += - mu * h[ii] + Vs[i][ii] * mu;
+      Eigen::SparseLU< Eigen::SparseMatrix<double,0,int> > LU(K);  // performs a Cholesky factorization of A
+
+ Xs[i] = LU.solve(Z);         // use the factorization to solve for the given right hand side
+      
+  
+  Y += A * Xs[i];
+   
+}
+
 
 void GaussianProcess::sample_Xv2( const int i,
               Eigen::VectorXd & Z,
@@ -166,7 +207,15 @@ void GHProcess::sample_V(const int i ,
                  type_process);
 
 }
+void GHProcess::simulate_V(const int i ,
+    					   gig & rgig)
+{
+ 	Vs[i] = sampleV_pre(rgig,
+                 h,
+                 nu,
+                 type_process);
 
+}
 
 void GHProcess::gradient( const int i ,
 			   			  const Eigen::SparseMatrix<double,0,int> & K,
@@ -278,12 +327,12 @@ void GHProcess::step_theta(const double stepsize)
 		nu_vec[vec_counter] = nu;
 		vec_counter++;
 	}
+	clear_gradient();
 }
 
 void GHProcess::step_mu(const double stepsize)
 {
 	mu -= (stepsize / ddmu_1 ) * dmu;
-	dmu = 0;
 	ddmu_1 = 0;
 	ddmu_2 = 0;
 }
@@ -313,6 +362,21 @@ void GHProcess::step_nu(const double stepsize)
 }
 
 
+Eigen::VectorXd GHProcess::get_gradient()
+{
+  Rcpp::Rcout << "npars = " << npars << "\n";
+	Eigen::VectorXd  g(npars);
+	g[0] = dmu;
+	g[1] = dnu;	
+	return(g);
+}
+
+void GHProcess::clear_gradient()
+{
+	dnu = 0;
+	dmu = 0;
+}
+
 void GHProcess::setupStoreTracj(const int Niter)
 {
 
@@ -336,6 +400,7 @@ Rcpp::List GHProcess::toList()
   out["X"]      = Xs;
   out["V"]      = Vs;
   out["noise"]  = type_process;
+  out["Cov_theta"]   = Cov_theta;
 
   if(store_param)
   {
@@ -352,13 +417,13 @@ Rcpp::List GaussianProcess::toList()
   out["X"] = Xs;
   out["V"] = Vs;
   out["noise"]  = "Normal";
+  out["Cov_theta"]   = Cov_theta;
   return(out);
 }
 
 void GHProcess::update_nu()
 {
 
-  	dnu  = 0;
   	ddnu = 0;
 
   if(type_process == "NIG")

@@ -1,3 +1,5 @@
+library(INLA)
+
 #' Simulating longitudal model
 #'
 #' @param locs list of location of observations
@@ -38,7 +40,7 @@ simulateLong.R <- function(loc,
   }
 
 
-  operator_List <- create_operator(loc, n, name = operatorType, boundary = boundary)
+  operator_List <- create_operator(loc, n, name = operatorType)
 
 
   tau = as.double(theta$tau)
@@ -64,8 +66,7 @@ simulateLong.R <- function(loc,
   A <- list()
   for(i in 1:length(loc))
   {
-    A[[i]] <- inla.mesh.1d.A(operator_List$mesh1d, loc[[i]])
-
+    A[[i]] <-  spde.A(x = operator_List$loc, loc = loc[[i]])
   }
 
   Y = list()

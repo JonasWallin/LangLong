@@ -5,6 +5,10 @@ estimateLong_cpp <- function(in_list) {
     .Call('LANGlong_estimateLong_cpp', PACKAGE = 'LANGlong', in_list)
 }
 
+estimateFisher <- function(in_list) {
+    .Call('LANGlong_estimateFisher', PACKAGE = 'LANGlong', in_list)
+}
+
 predictLong_cpp <- function(in_list) {
     .Call('LANGlong_predictLong_cpp', PACKAGE = 'LANGlong', in_list)
 }

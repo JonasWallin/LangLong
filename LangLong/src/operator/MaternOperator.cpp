@@ -5,7 +5,7 @@
 
 void MaternOperator::initFromList(Rcpp::List const & init_list, Rcpp::List const & solver_list)
 {
-  Rcpp::Rcout << "init1\n";
+	npars = 2;
   std::vector<std::string> check_names =  {"C", "G", "kappa", "tau","h"};
   check_Rcpplist(init_list, check_names, "MaternOperator::initFromList");
   std::vector<std::string> check_names2 =  {"use.chol"};
@@ -25,7 +25,8 @@ void MaternOperator::initFromList(Rcpp::List const & init_list, Rcpp::List const
 
   dkappa = 0;
   dtau = 0;
-
+	h = h;
+	h_average = h.sum() / h.size();
   use_chol = Rcpp::as<int>(solver_list["use.chol"]);
 
   if(use_chol==1){
@@ -81,6 +82,7 @@ Rcpp::List MaternOperator::output_list()
   List["C"] = C;
   List["nIter"] = tauVec.size();
   List["use.chol"] = use_chol;
+  List["Cov_theta"]   = Cov_theta;
   return(List);
 }
 
@@ -149,7 +151,28 @@ void MaternOperator::step_theta(const double stepsize)
 	tauVec[counter] = tau;
 	kappaVec[counter] = kappa;
 	counter++;
-  this->set_matrices();
+	clear_gradient();
+	ddtau   = 0;
+	ddkappa = 0;
+  	this->set_matrices();
 }
 
+double MaternOperator::trace_variance( const Eigen::SparseMatrix<double,0,int> & A)
+{
+	return(A.rows() * tau/ h_average);
 
+}
+
+Eigen::VectorXd  MaternOperator::get_gradient()
+{
+	Eigen::VectorXd g(npars);
+	g[0] = dtau;
+	g[1] = dkappa;  
+	return(g);
+}
+void  MaternOperator::clear_gradient()
+{
+	dkappa = 0;
+	dtau   = 0;
+
+};

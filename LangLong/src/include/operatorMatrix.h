@@ -27,14 +27,27 @@ class operatorMatrix {
   protected:
     solver * Qsolver;
   public:
-
+  
+  
+  
+  	Eigen::MatrixXd Cov_theta;// assymptotic covariance of the parameters
+  	
+	int npars; // number of parameters
     Eigen::VectorXd  loc; // location of the position
     operatorMatrix() {Qsolver = NULL;};
     virtual ~operatorMatrix(){delete Qsolver;};
     int d; //dimension
-    int npars; //number of parameters
     Eigen::SparseMatrix<double,0,int> Q; // the generic matrix object
     Eigen::MatrixXd K;                   // the generic matrix object if Q is full!
+  
+  
+  
+      
+    
+    virtual Eigen::VectorXd  get_gradient() { Eigen::VectorXd temp; return(temp);};
+    virtual void  clear_gradient() {};
+
+  
     virtual void initFromList(Rcpp::List const &)=0;
     virtual void initFromList(Rcpp::List const &, Rcpp::List const &) {Rcpp::Rcout << "initFromList(list1,list2) not implimented in operatorMatrix\n";};
 
@@ -48,6 +61,12 @@ class operatorMatrix {
     double tau;
     Eigen::VectorXd  tauVec;
     int counter;
+    
+    
+	/*
+    	stores the covariance of the parameters 
+    */
+	void set_covariance(const Eigen::MatrixXd & Cov_in) {Cov_theta = Cov_in;};
 };
 
 class constMatrix : public operatorMatrix{
@@ -55,7 +74,7 @@ class constMatrix : public operatorMatrix{
     Eigen::SparseMatrix<double,0,int> m;
     Eigen::VectorXd v;
     double m_loc;
-    Eigen::VectorXd  h; //number of parameters
+    Eigen::VectorXd  h; 
     double h_average;
   public:
 
@@ -69,6 +88,11 @@ class constMatrix : public operatorMatrix{
     void initFromList(Rcpp::List const &, Rcpp::List const &);
     Rcpp::List output_list();
     void print_parameters();
+    
+        
+    Eigen::VectorXd  get_gradient() { Eigen::VectorXd g(1); g[0] = dtau; return(g);};
+    void  clear_gradient() {dtau = 0;};
+    
 };
 
 class fd2Operator : public constMatrix {
@@ -81,6 +105,9 @@ public:
 class MaternOperator : public operatorMatrix{
   protected:
     double ldet;
+    
+    Eigen::VectorXd  h; 
+    double h_average;
     Eigen::VectorXd g,p;
     Eigen::SparseMatrix<double,0,int> G, C;
     double kappa, dkappa, ddkappa, dtau, ddtau;
@@ -106,6 +133,11 @@ class MaternOperator : public operatorMatrix{
     void step_theta(const double );
     Eigen::VectorXd kappaVec;
     void print_parameters();
+    double trace_variance( const Eigen::SparseMatrix<double,0,int> & );
+    
+    Eigen::VectorXd  get_gradient();
+    void  clear_gradient();
+
 };
 
 

@@ -22,5 +22,6 @@ Rcpp::List fd2Operator::output_list()
   List["loc"] = loc;
   List["nIter"] = tauVec.size();
   List["h"] = h;
+  List["Cov_theta"]   = Cov_theta;
   return(List);
 }

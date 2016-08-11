@@ -39,12 +39,17 @@ obs_list <- list()
 X <- list()
 V <- list()
 for(i in 1:length(locs)){
-  obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]), 
+  obs_list[[i]] <- list(A =  spde.A(x = operator_list$loc, loc = locs[[i]]), 
                         Y=output_sim$Y[[i]], 
                         locs = locs[[i]])
   X[[i]] <- rep(0, n) 
   V[[i]] <- operator_list$h
 }
+
+
+mError_list <- list(noise = "Normal",
+                    sigma = theta$sigma)
+
 operator_list$tau <-theta$tau
 processes_list <- list(nu = nu_guess, mu = mu_guess, X = output_sim$X, V = output_sim$V, noise = "NIG")
 input <- list( obs_list         = obs_list,
@@ -56,7 +61,7 @@ input <- list( obs_list         = obs_list,
                silent           = 0, # print iteration info)
                step0            = 1,
                alpha            = 0.01,
-               sigma            = theta$sigma
+               measurment_list   = mError_list
               )
 output <- estimateProcess_cpp(input)
 x11()
