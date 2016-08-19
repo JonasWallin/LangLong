@@ -9,8 +9,8 @@ graphics.off()
 library(GHmixedeffect)
 library(rGIG)
 library(MASS)
-n.pers <- 100 #number of patients
-n.obs  <- 30 #number of obs per patient
+n.pers <- 1000 #number of patients
+n.obs  <- 50 #number of obs per patient
 
 COV_beta <- matrix(c(0.2,0.1,0.1,0.2), ncol = 2, nrow = 2)
 sd_Y    <- 0.1 # error of the noise
@@ -19,7 +19,7 @@ Br_list <- list()
 betar <- c(0.9,0.4)
 betaf <- c(1.)
 mu   <- c(0.2, -0.2)
-nu <- 0.5
+nu <- 1
 betar_list <- list()
 Bf_list    <- list()
 V_list     <- list()
@@ -51,10 +51,10 @@ mixedEffect_list <- list(B_random = Br_list,
 input <- list(Y = Y_list, 
               mixedEffect_list = mixedEffect_list,
               measurementError_list = meas_list,
-              nSim = 2,
-              alpha = 0.3,
+              nSim = 1,
+              alpha = 0.5,
               step0 = 1,
-              Niter = 2000)
+              Niter = 8000)
 
 beta_mat <- t(matrix(unlist(betar_list), nrow= 2, ncol = n.pers))
 if(0){
@@ -63,24 +63,9 @@ par(mfrow=c(2,1))
 hist(beta_mat[,1],100)
 hist(beta_mat[,2],100)
 }
+
 res <- estimateME(input)
-test_that("NIG-Gaussian random",
-{
-  expect_equal(res$mixedEffect_list$beta_random, betar, tolerance  = 0.2)
-})
-test_that("NIG-Gaussian fixed",
-{
-  expect_equal(res$mixedEffect_list$beta_fixed, betaf, tolerance  = 0.2)
-})
-test_that("NIG-Gaussian mu",
-{
-  expect_equal(res$mixedEffect_list$mu, mu, tolerance  = 0.2)
-})
-test_that("NIG-Gaussian sigma",
-{
-  expect_equal(res$measurementError_list$sigma, sd_Y, tolerance  = 0.1)
-})
-if(0){
+if(1){
   x11()
   par(mfrow=c(3,1))
   mu_vec = res$mixedEffect_list$mu_vec
@@ -98,3 +83,20 @@ if(0){
   plot(res$mixedEffect_list$nu_vec, type='l', col='red' )
   lines(c(1, n_), c(nu, nu))
 }
+
+test_that("NIG-Gaussian random",
+{
+  expect_equal(res$mixedEffect_list$beta_random, betar, tolerance  = 0.2)
+})
+test_that("NIG-Gaussian fixed",
+{
+  expect_equal(res$mixedEffect_list$beta_fixed, betaf, tolerance  = 0.2)
+})
+test_that("NIG-Gaussian mu",
+{
+  expect_equal(res$mixedEffect_list$mu, mu, tolerance  = 0.2)
+})
+test_that("NIG-Gaussian sigma",
+{
+  expect_equal(res$measurementError_list$sigma, sd_Y, tolerance  = 0.1)
+})

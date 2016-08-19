@@ -61,6 +61,7 @@ class MixedEffect {
     */
     virtual void simulate()                                 = 0;
     virtual void simulate(std::vector< Eigen::VectorXd > &) = 0;
+    virtual void simulate(Eigen::VectorXd  & ,const int )   = 0;
     /*
     	clear gradient
     */
@@ -132,6 +133,7 @@ class NormalMixedEffect  : public MixedEffect{
     void step_beta_random(double stepsize);
     void simulate();
     void simulate(std::vector< Eigen::VectorXd >  &);
+    void simulate(Eigen::VectorXd  & ,const int );
 
     Rcpp::List toList();
     
@@ -218,6 +220,7 @@ class NIGMixedEffect  : public MixedEffect{
     Rcpp::List toList();
     void simulate();
     void simulate(std::vector< Eigen::VectorXd > & );
+    void simulate(Eigen::VectorXd  & ,const int );
     
     virtual void printIter(); //print iteration data
     virtual void setupStoreTracj(const int Niter); // setups to store the tracjetory

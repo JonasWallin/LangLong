@@ -86,6 +86,12 @@ std::vector< Eigen::VectorXd > GaussianMeasurementError::simulate(std::vector< E
 	return(residual);
 }
 
+Eigen::VectorXd  GaussianMeasurementError::simulate(const Eigen::VectorXd & Y)
+{
+	Eigen::VectorXd residual =  sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y.size()) ));
+	return(residual);
+}
+Eigen::VectorXd  simulate( const Eigen::VectorXd &);
 
 void GaussianMeasurementError::clear_gradient()
 {

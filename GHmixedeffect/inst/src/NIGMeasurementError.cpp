@@ -112,6 +112,25 @@ std::vector< Eigen::VectorXd > NIGMeasurementError::simulate(std::vector< Eigen:
 	return(residual);
 }
 
+Eigen::VectorXd  NIGMeasurementError::simulate(const Eigen::VectorXd & Y)
+{
+	Eigen::VectorXd residual =  sigma * (Rcpp::as< Eigen::VectorXd >(Rcpp::rnorm( Y.size()) ));
+	if(common_V == 0){
+		for(int ii = 0; ii < residual.size(); ii++)
+	    {
+	      double V = rgig.sample(-0.5, nu, nu);
+	      residual[ii] *=  sqrt(V);
+	    }
+	
+	}else{
+		  double V = rgig.sample(-0.5, nu, nu);
+	      residual.array() *=  sqrt(V);
+	}
+	
+	return(residual);
+}
+
+
 void NIGMeasurementError::sampleV(const int i, const Eigen::VectorXd& res, int n_s )
 {
 	if(n_s == -1)

@@ -33,6 +33,7 @@ class MeasurementError {
 
     // sampling from the prior model
   	virtual std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd > )  = 0;
+  	virtual Eigen::VectorXd  simulate( const Eigen::VectorXd &)  = 0;
     /*
     	clear gradient
     */
@@ -65,6 +66,7 @@ class GaussianMeasurementError : public MeasurementError{
 		void sampleV(const int i, const Eigen::VectorXd& res, int n_s = -1) {};
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
+		Eigen::VectorXd  simulate( const Eigen::VectorXd &);
 
 		void clear_gradient();
 
@@ -100,7 +102,7 @@ class NIGMeasurementError : public MeasurementError{
 		void sampleV(const int , const Eigen::VectorXd& , int = -1);
 		Rcpp::List toList();
 		std::vector< Eigen::VectorXd > simulate( const std::vector< Eigen::VectorXd >);
-
+		Eigen::VectorXd  simulate( const Eigen::VectorXd &);
 		void clear_gradient();
 
 		Eigen::VectorXd get_gradient();

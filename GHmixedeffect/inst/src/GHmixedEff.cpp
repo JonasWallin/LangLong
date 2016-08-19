@@ -213,8 +213,24 @@ void NIGMixedEffect::simulate(std::vector< Eigen::VectorXd > & Y )
 		V(i)     =   rgig.sample(p, nu, nu);
 		U.col(i) =   sample_Nc(b, invSigma/V(i));
 		U.col(i) += -mu + mu * V(i);
-		Y[i] += Br[i]* (U + beta_random);
+		Y[i] += Br[i]* (U.col(i) + beta_random);
 	} 
+}
+
+void NIGMixedEffect::simulate(Eigen::VectorXd  & Y, const int i )
+{
+	if(Bf.size() >0)
+	{
+		Y += Bf[i]* beta_fixed;
+	}
+	if(Br.size() == 0)
+      return;
+  double p  = -0.5;
+	Eigen::VectorXd b; b.setZero(U.rows());
+	V(i)     =   rgig.sample(p, nu, nu);
+	U.col(i) =   sample_Nc(b, invSigma/V(i));
+	U.col(i) += -mu + mu * V(i); 
+	Y += Br[i] * (U.col(i) + beta_random);
 }
 
 void NIGMixedEffect::sampleU(const int i, 

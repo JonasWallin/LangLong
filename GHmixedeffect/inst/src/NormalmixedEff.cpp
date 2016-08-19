@@ -188,9 +188,24 @@ void NormalMixedEffect::simulate(std::vector< Eigen::VectorXd > & Y )
 	Eigen::VectorXd b; b.setZero(U.rows());
 	for(int i = 0; i < U.cols(); i++) {
 		U.col(i) =   sample_Nc(b, invSigma); 
-		Y[i] += Br[i]* (U + beta_random);
+		Y[i] += Br[i]* (U.col(i) + beta_random);
 	}
 }
+
+void NormalMixedEffect::simulate(Eigen::VectorXd  & Y, const int i )
+{
+	if(Bf.size() >0)
+	{
+		Y += Bf[i]* beta_fixed;
+	}
+	if(Br.size() == 0)
+      return;
+
+	Eigen::VectorXd b; b.setZero(U.rows());
+	U.col(i) =   sample_Nc(b, invSigma); 
+	Y += Br[i] * (U.col(i) + beta_random);
+}
+
 
 void NormalMixedEffect::sampleU(const int i, 
                                 const Eigen::VectorXd& res,
