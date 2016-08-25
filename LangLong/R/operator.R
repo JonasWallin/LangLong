@@ -71,6 +71,7 @@ spde.basis <- function(x,right.boundary = 'neumann',left.boundary = 'neumann')
 
   return(list(G=G,
               C=C,
+              Ce=Ce,
               Ci=Ci,
               loc=x,
               h = h))
@@ -109,6 +110,7 @@ create_matrices_Matern <- function(locs, n, right.boundary = 'neumann',left.boun
                         C = as(as(MatrixBlock$C,"CsparseMatrix"), "dgCMatrix"),
                         Ci = as(as(MatrixBlock$Ci,"CsparseMatrix"), "dgCMatrix"),
                         G = MatrixBlock$G,
+                        Ce = MatrixBlock$Ce,
                         h = MatrixBlock$h,
                         kappa = 0,
                         loc   = P,

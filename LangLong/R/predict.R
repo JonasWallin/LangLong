@@ -58,6 +58,10 @@ predictLong <- function( Y,
   } else {
     stop('Type needs to be either Filter or Smoothing.')
   }
+
+  if(missing(locs.pred)){
+    locs.pred <- locs
+  }
   obs_list <- list()
 
   if(!missing(pInd) && !is.null(pInd)){
@@ -141,13 +145,17 @@ predictLong <- function( Y,
   out_list$locs <- locs.pred
   out_list$X.summary <- list()
   out_list$W.summary <- list()
+
   for(i in 1:length(locs)){
+
     out_list$X.summary[[i]] <- list()
     out_list$W.summary[[i]] <- list()
     out_list$X.summary[[i]]$Mean <- apply(output$XVec[[i]],1,mean)
     out_list$W.summary[[i]]$Mean <- apply(output$WVec[[i]],1,mean)
     out_list$X.summary[[i]]$Var  <- apply(output$XVec[[i]],1,var)
     out_list$W.summary[[i]]$Var  <- apply(output$WVec[[i]],1,var)
+    out_list$X.summary[[i]]$Median <- apply(output$XVec[[i]],1,median)
+    out_list$W.summary[[i]]$Median <- apply(output$WVec[[i]],1,median)
 
     if(!is.null(quantiles)){
       x.list <- list()
