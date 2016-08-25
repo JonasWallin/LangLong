@@ -151,9 +151,11 @@ List estimateLong_cpp(Rcpp::List in_list)
     if(silent == 0){
       Rcpp::Rcout << "i = " << iter << ": \n";
       process->printIter();
+      Rcpp::Rcout << "\n";
       Kobj->print_parameters();
       mixobj->printIter();
       errObj->printIter();
+      Rcpp::Rcout << "\n";
     }
 
     Eigen::SparseMatrix<double,0,int> K = Eigen::SparseMatrix<double,0,int>(Kobj->Q);

@@ -198,21 +198,27 @@ void GHProcess::sample_V(const int i ,
     					              gig & rgig,
                             const Eigen::SparseMatrix<double,0,int> & K)
 {
+	double nu_in = nu;
+	if( type_process == "NIG")
+		nu_in = sqrt(nu_in);
  	Vs[i] = sampleV_post(rgig,
                  h,
                  K * Xs[i],
                  1.,
                  mu,
-                 nu,
+                 nu_in,
                  type_process);
 
 }
 void GHProcess::simulate_V(const int i ,
     					   gig & rgig)
 {
+	double nu_in = nu;
+	if( type_process == "NIG")
+		nu_in = sqrt(nu_in);
  	Vs[i] = sampleV_pre(rgig,
                  h,
-                 nu,
+                 nu_in,
                  type_process);
 
 }
@@ -305,7 +311,7 @@ void GHProcess::grad_nu(const int i)
 {
 // dnu
 	if(type_process == "NIG"){
-		dnu  +=  h.size() / nu -   (h2.dot(iV) + Vs[i].sum() - 2 * h_sum) * nu;
+		dnu  +=  0.5 *( h.size() / nu -   h2.dot(iV) - Vs[i].sum() + 2 * h_sum);
 	}else if(type_process == "GAL"){
     Eigen::VectorXd temp(Vs[i].size());
     temp.array() = Vs[i].array().log();
@@ -341,7 +347,7 @@ void GHProcess::step_nu(const double stepsize)
 {
   double nu_temp = -1;
   if(type_process == "NIG"){
-  	ddnu = -  h.size()/ pow(nu,2) - (h2.dot(EiV) + EV.sum()) + 2 * h_sum;
+  	ddnu = -  h.size()/ pow(nu,2);
   	ddnu *= counter;
   }else if(type_process == "GAL"){
   	ddnu = h_sum/ nu - h_trigamma;
