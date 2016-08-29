@@ -21,11 +21,11 @@ for(i in 1:n.pers)
 {
   B_list[[i]]    <- cbind(rep(1, n.obs), (1:n.obs) / n.obs )
   beta_list[[i]] <-beta+  rnorm(n = length( beta), 0, sd = sd_beta)
-  V <- rGIG(rep(-0.5,n.obs), rep(nu, n.obs), rep(nu, n.obs))
+  V <- 1/rgamma(n.obs, nu, nu)
   Y_list[[i]]        <-  B_list[[i]]%*%beta_list[[i]] + sqrt(V)*rnorm(n = n.obs, 0, sd = sd_Y)
   Vin[[i]] <- rep(1, n.obs)
 }
-meas_list <- list(Vs = Vin, sigma.eps = 1., nu = 1., noise = "NIG")
+meas_list <- list(Vs = Vin, sigma.eps = 1., nu = 3., noise = "IG")
 
 mixedEffect_list <- list(B_random = B_list, 
                          Sigma = sd_beta*diag(2), 
@@ -38,19 +38,19 @@ input <- list(Y = Y_list,
               alpha = 0.3,
               step0 = 1,
               Niter = 2000,
-              silent = 1)
+              silent = 0)
 
 res <- estimateME(input)
 
-test_that("simple Gaussian-NIG random effect",
+test_that("simple Gaussian-IG random effect",
 {
   expect_equal(res$mixedEffect_list$beta_random, beta, tolerance  = 0.1)
 })
-test_that("simple Gaussian-NIG measurement sigma",
+test_that("simple Gaussian-IG measurement sigma",
 {
   expect_equal(res$measurementError_list$sigma, sd_Y, tolerance  = 0.1)
 })
-if(0){
+if(1){
 x11()
 par(mfrow=c(3,1))
 plot(res$measurementError_list$sigma_vec, type='l', col='red')

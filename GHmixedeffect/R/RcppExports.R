@@ -17,6 +17,10 @@ estimateME <- function(input) {
     .Call('GHmixedeffect_estimateME', PACKAGE = 'GHmixedeffect', input)
 }
 
+estimateME_Vfixed <- function(input) {
+    .Call('GHmixedeffect_estimateME_Vfixed', PACKAGE = 'GHmixedeffect', input)
+}
+
 samplePostV <- function(input) {
     .Call('GHmixedeffect_samplePostV', PACKAGE = 'GHmixedeffect', input)
 }

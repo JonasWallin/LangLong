@@ -51,6 +51,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// estimateME_Vfixed
+Rcpp::List estimateME_Vfixed(Rcpp::List input);
+RcppExport SEXP GHmixedeffect_estimateME_Vfixed(SEXP inputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type input(inputSEXP);
+    __result = Rcpp::wrap(estimateME_Vfixed(input));
+    return __result;
+END_RCPP
+}
 // samplePostV
 Eigen::VectorXd samplePostV(Rcpp::List input);
 RcppExport SEXP GHmixedeffect_samplePostV(SEXP inputSEXP) {

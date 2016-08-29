@@ -77,8 +77,8 @@ simulateLong.R <- function(loc,
       X[[i]] = solve(R,rnorm(dim(R)[1]))
     }else if (noise == "NIG"){
       V[[i]] =  rGIG(rep(-0.5, n),
-                     rep( theta$nu^2, n),
-                     (operator_List$h * theta$nu)^2)
+                     rep( theta$nu, n),
+                     (operator_List$h )^2 * theta$nu)
       Z <- (- operator_List$h  + V[[i]]) * theta$mu + sqrt(V[[i]]) * rnorm(n)
       X[[i]] <- solve(K, Z)
     }else if( noise == "GAL"){

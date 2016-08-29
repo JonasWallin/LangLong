@@ -1,5 +1,5 @@
 ###
-# exmaple for testing estimation of random effect.
+# simple test to just see if estimation method does not crash
 ###
 graphics.off()
 library(testthat)
@@ -37,29 +37,24 @@ input <- list(Y = Y_list,
               nSim = 2,
               alpha = 0.3,
               step0 = 1,
-              Niter = 2000,
+              Niter = 20,
               silent = 1)
 
-res <- estimateME(input)
 
-test_that("simple Gaussian-NIG random effect",
-{
-  expect_equal(res$mixedEffect_list$beta_random, beta, tolerance  = 0.1)
-})
-test_that("simple Gaussian-NIG measurement sigma",
-{
-  expect_equal(res$measurementError_list$sigma, sd_Y, tolerance  = 0.1)
-})
-if(0){
-x11()
-par(mfrow=c(3,1))
-plot(res$measurementError_list$sigma_vec, type='l', col='red')
-n_ <- length(res$measurementError_list$sigma_vec)
-lines(c(1, n_), c(sd_Y[1],sd_Y[1]))
-lines(c(1, n_), c(sd_Y[2],sd_Y[2]))
-plot(res$measurementError_list$nu_vec, type='l', col='red')
-lines(c(1, n_), c(nu[1],nu[1]))
 
-plot(res$mixedEffect_list$betar_vec[,2], type='l', col='red')
-lines(c(1, n_), c(beta[2],beta[2]))
-}
+test_that("simple Normal error does not crash",
+{
+  meas_list$noise = "normal"
+  res <- estimateME(input)
+})
+
+test_that("simple NIG error does not crash",
+{
+  meas_list$noise = "NIG"
+  res <- estimateME(input)
+})
+test_that("simple IG error does not crash",
+{
+  meas_list$noise = "IG"
+  res <- estimateME(input)
+})

@@ -235,7 +235,7 @@ void GHProcess::gradient( const int i ,
 	if( type_process == "NIG"){
 		gradient_mu_centered(i, K);
 	}else if(type_process=="GAL"){
-  	iV = Vs[i].cwiseInverse();
+  			iV = Vs[i].cwiseInverse();
 		    Eigen::VectorXd temp_1  =  Vs[i];
 		    temp_1 -= h;
 
@@ -309,7 +309,8 @@ void GHProcess::gradient_mu_centered(const int i, const Eigen::SparseMatrix<doub
 
 void GHProcess::grad_nu(const int i)
 {
-// dnu
+	iV = Vs[i].cwiseInverse();
+	// dnu
 	if(type_process == "NIG"){
 		dnu  +=  0.5 *( h.size() / nu -   h2.dot(iV) - Vs[i].sum() + 2 * h_sum);
 	}else if(type_process == "GAL"){
@@ -347,7 +348,7 @@ void GHProcess::step_nu(const double stepsize)
 {
   double nu_temp = -1;
   if(type_process == "NIG"){
-  	ddnu = -  h.size()/ pow(nu,2);
+  	ddnu = -  h.size()/ (0.5 * pow(nu,2));
   	ddnu *= counter;
   }else if(type_process == "GAL"){
   	ddnu = h_sum/ nu - h_trigamma;
@@ -436,10 +437,10 @@ void GHProcess::update_nu()
   	{
 
   		EiV=  h2.cwiseInverse();
-      	EiV *=  1./pow(nu, 2);
+      	EiV *=  1./nu;
   		EiV += h.cwiseInverse();
 
-  		Vv_mean  = h_sum / (pow(nu, 2) * h.size());
+  		Vv_mean  = h_sum / ( nu * h.size());
   	}else if(type_process == "GAL"){
   		h_digamma  = 0;
   		h_trigamma = 0;

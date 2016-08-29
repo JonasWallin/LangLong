@@ -1,23 +1,35 @@
 #include "measError.h"
 #include "error_check.h"
 
-NIGMeasurementError::NIGMeasurementError() : NormalVarianceMixtureBaseError(){
+
+
+double Digamma(double x)
+{
+  return(R::digamma(x));
+}
+
+double Trigamma(double x)
+{
+  return(R::trigamma(x));
+}
+
+IGMeasurementError::IGMeasurementError() : NormalVarianceMixtureBaseError(){
   nu        = 1;
   dnu       = 0;
   ddnu      = 0;
-  noise = "NIG";
+  noise = "IG";
   
 }
 
 
 
-void NIGMeasurementError::printIter() 
+void IGMeasurementError::printIter() 
 {
 	NormalVarianceMixtureBaseError::printIter();
 	Rcpp::Rcout << "\n nu = " << nu;
 
 }
-void NIGMeasurementError::setupStoreTracj(const int Niter) // setups to store the tracjetory
+void IGMeasurementError::setupStoreTracj(const int Niter) // setups to store the tracjetory
 {
 	
 	NormalVarianceMixtureBaseError::setupStoreTracj(Niter);
@@ -28,7 +40,7 @@ void NIGMeasurementError::setupStoreTracj(const int Niter) // setups to store th
 
 
 
-Rcpp::List NIGMeasurementError::toList()
+Rcpp::List IGMeasurementError::toList()
 {
   Rcpp::List out = NormalVarianceMixtureBaseError::toList();
   out["nu"]          = nu;
@@ -38,7 +50,7 @@ Rcpp::List NIGMeasurementError::toList()
   
   return(out);
 }
-void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
+void IGMeasurementError::initFromList(Rcpp::List const &init_list)
 {
   
   NormalVarianceMixtureBaseError::initFromList(init_list);
@@ -48,10 +60,13 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
   else
     nu = 1.;
 
-    EV  = 1.;
-    EiV = 1. + 1./nu;
+    EV  = 1.; // not true it is the mode is alpha/(alpha - 1)
+    EiV = 1.;
 
    npars += 1;
+  digamma_nu  =  Digamma(nu);
+  trigamma_nu =  Trigamma(nu);
+  
  int i = 0;
 
  if( init_list.containsElementNamed("Vs" )){
@@ -61,45 +76,46 @@ void NIGMeasurementError::initFromList(Rcpp::List const &init_list)
       Vs[i++] = Rcpp::as < Eigen::VectorXd >( it[0]);
     }
  }else
- 	  throw("in NigMeasurementError::initFromList Vs must be set! \n");
+ 	  throw("in IGMeasurementError::initFromList Vs must be set! \n");
 
 
 }
 
-double NIGMeasurementError::simulate_V()
+double IGMeasurementError::simulate_V()
 {
-	return rgig.sample(-0.5, nu, nu);
+	return rgig.sample(-nu, 0, 2 * nu );
 }
 
-double NIGMeasurementError::sample_V(const double res2_j, const int n_s)
+double IGMeasurementError::sample_V(const double res2_j, const int n_s)
 {
 	if(common_V == 0)
-		return rgig.sample(-1., nu, res2_j + nu);
+		return rgig.sample(-(nu + .5), 0 , res2_j + 2 * nu);
 	
-	return rgig.sample(-0.5 * (n_s + 1), nu, res2_j + nu);
+	return rgig.sample(-  (nu + .5 * n_s), 0, res2_j + 2 * nu );
 }
 
 
 
 
 
-void NIGMeasurementError::gradient(const int i,
+void IGMeasurementError::gradient(const int i,
                                  const Eigen::VectorXd& res)
 {
     NormalVarianceMixtureBaseError::gradient(i, res);
     Eigen::VectorXd iV = Vs[i].cwiseInverse();
     if(common_V == 0){
-    	dnu  += 0.5 * ( res.size() / nu + 2 * res.size() -   (Vs[i].array().sum() + iV.array().sum()) );
-    	ddnu += - 0.5*res.size()/( nu * nu);
+    	double logV = Vs[i].array().log().sum();
+    	dnu  +=  res.size() *  (1. + log(nu)  - digamma_nu) - logV - iV.array().sum() ;
+    	ddnu += res.size() * (1/ nu - trigamma_nu);
     }else{
     
-    	dnu  += 0.5 * ( 1. / nu + 2  -   (Vs[i][0] + iV[0]) );
-    	ddnu += - 0.5*  1. / ( nu * nu);
+    	double logV = log(Vs[i][0]);
+    	dnu  +=   (1. + log(nu)  - digamma_nu) - logV - iV[0] ;
+    	ddnu +=  (1/ nu - trigamma_nu);
     }
-    	
 }
 
-void NIGMeasurementError::step_nu(double stepsize)
+void IGMeasurementError::step_nu(double stepsize)
 {
 double nu_temp = -1;
   dnu /= ddnu;
@@ -108,16 +124,18 @@ double nu_temp = -1;
     nu_temp = nu - stepsize * dnu;
     stepsize *= 0.5;
     if(stepsize <= 1e-16)
-        throw("in NIGMeasurementError:: can't make nu it positive \n");
+        throw("in IGMeasurementError:: can't make nu it positive \n");
   }
   nu = nu_temp;
-  EV  = 1.;
-  EiV = 1. + 1./nu;
+  EV  = 1.;  // not true it is the mode that is 1.
+  EiV = 1. ;
   ddnu = 0;
+  digamma_nu  =  Digamma(nu);
+  trigamma_nu =  Trigamma(nu);
 
 }
 
-void NIGMeasurementError::step_theta(double stepsize)
+void IGMeasurementError::step_theta(double stepsize)
 {
   NormalVarianceMixtureBaseError::step_theta(stepsize);
   
@@ -129,12 +147,12 @@ if(store_param)
   
 }
 
-void NIGMeasurementError::clear_gradient()
+void IGMeasurementError::clear_gradient()
 {	
 	NormalVarianceMixtureBaseError::clear_gradient();
 	dnu    = 0;
 }
-Eigen::VectorXd NIGMeasurementError::get_gradient()
+Eigen::VectorXd IGMeasurementError::get_gradient()
 {
 	Eigen::VectorXd g = NormalVarianceMixtureBaseError::get_gradient();
 	g[1] = dnu;

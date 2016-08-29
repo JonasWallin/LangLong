@@ -42,7 +42,7 @@ Eigen::VectorXd sampleV_pre(gig &sampler,
                         const std::string type)
 {
   Eigen::VectorXd V(h.size());
-  double Vadj = 1e-12;
+  double Vadj = 1e-14;
   if(type == "NIG"){
     for(int i = 0; i < h.size(); i++)
     	V[i] = sampler.sample(-0.5 , pow(nu, 2), pow(h[i] * nu, 2));
@@ -86,8 +86,8 @@ Eigen::VectorXd sampleV_post(gig &sampler,
   }
   
   Eigen::VectorXd V(KX.size());
-  double b_adj = 1e-14;
-  double Vadj  = 1e-14;
+  double b_adj = 1e-12;
+  double Vadj  = 1e-12;
   for(int i = 0; i < KX.size(); i++)
       V[i] = sampler.sample( p[i], a, b[i] + b_adj) + Vadj; 
   

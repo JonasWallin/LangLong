@@ -1,16 +1,16 @@
 # testing that the parameters converge for GAL distribution
 rm(list=ls())
 library(LANGlong)
-library(INLA)
+#library(INLA)
 library(rGIG)
 library(methods)
 graphics.off()
 npers <- 100
 nobs  <- 100
-nIter <- 20000
+nIter <- 10000
 n     <- 100 #n grid points
 noise <- "GAL"
-nu_true <- 50
+nu_true <- 1
 mu_true <- 5
 nu_guess <- 1.1
 mu_guess <- 1
@@ -36,7 +36,7 @@ obs_list <- list()
 X <- list()
 V <- list()
 for(i in 1:length(locs)){
-  obs_list[[i]] <- list(A = inla.mesh.1d.A(operator_list$mesh1d, locs[[i]]), 
+  obs_list[[i]] <- list(A = spde.A(x = operator_list$loc, loc = locs[[i]]), 
                         Y=output_sim$Y[[i]], 
                         locs = locs[[i]])
   X[[i]] <- rep(0, n) 
@@ -59,8 +59,8 @@ output <- estimateProcess_cpp(input)
 x11()
 par(mfrow=c(3,1))
 plot(locs[[1]],output_sim$Y[[5]])
-lines(output_sim$xloc, output_sim$X[[5]])
-lines(operator_list$mesh1d$loc, output$X[[5]],col='red',lty='dashed')
+lines(operator_list$loc, output_sim$X[[5]])
+lines(operator_list$loc, output$X[[5]],col='red',lty='dashed')
 plot(output$mu_vec)
 plot(output$nu_vec)
 K = sqrt(theta$tau)*operator_list$Q
